@@ -1,0 +1,20 @@
+machine:
+  environment:
+    GODIST: "go1.8.1.linux-amd64.tar.gz"
+    PROJECT_GOPATH: "${HOME}/.go_project"
+    PROJECT_PARENT_PATH: "${PROJECT_GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}"
+    PROJECT_PATH: "${PROJECT_PARENT_PATH}/${CIRCLE_PROJECT_REPONAME}"
+    GOPATH: "${HOME}/.go_workspace:/usr/local/go_workspace:${PROJECT_GOPATH}"
+dependencies:
+  pre:
+    - mkdir -p download
+    - test -e download/$GODIST || curl -o download/$GODIST https://storage.googleapis.com/golang/$GODIST
+    - sudo rm -rf /usr/local/go
+    - sudo tar -C /usr/local -xzf download/$GODIST
+    - go version
+  override:
+    - mkdir -p "${PROJECT_PARENT_PATH}"
+    - rsync -avC "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${PROJECT_PATH}"
+test:
+  override:
+    - cd "${PROJECT_PATH}" && make test
