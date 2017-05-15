@@ -1,0 +1,9 @@
+codecov:
+  bot: bukalapakbot
+coverage:
+  status:
+    patch:
+      default:
+        enabled: yes
+        target: 100%
+
