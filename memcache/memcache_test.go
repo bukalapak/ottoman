@@ -12,12 +12,21 @@ import (
 	"github.com/bukalapak/ottoman/memcache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/subosito/gotenv"
 )
 
 type MemcacheSuite struct {
 	suite.Suite
 	client *gomemcache.Client
 	c      *memcache.Memcache
+}
+
+func (suite *MemcacheSuite) SetupSuite() {
+	gotenv.Load("../env.sample")
+}
+
+func (suite *MemcacheSuite) TearDownSuite() {
+	os.Clearenv()
 }
 
 func (suite *MemcacheSuite) Addr() string {
