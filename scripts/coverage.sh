@@ -12,7 +12,7 @@ EXITCODE=0
 echo "mode: atomic" > $OUTFILE
 
 for PKG in $PACKAGES; do
-  echo ==---== $PKG
+  echo ======= $PKG
 
   go test -race -v -coverprofile=profile.out -covermode=atomic $PKG; __EXITCODE__=$?
 
