@@ -1,0 +1,31 @@
+{
+  "Deadline": "10m",
+  "Vendor": true,
+  "DisableAll": true,
+  "Enable": [
+    "deadcode",
+    "errcheck",
+    "gas",
+    "goconst",
+    "gocyclo",
+    "golint",
+    "gosimple",
+    "interfacer",
+    "misspell",
+    "staticcheck",
+    "structcheck",
+    "unconvert",
+    "unparam",
+    "unused",
+    "varcheck",
+    "vet",
+    "vetshadow"
+  ],
+  "Exclude": [
+    "unexported",
+    "error return",
+    "Errors unhandled"
+  ],
+  "Skip": [
+  ]
+}
