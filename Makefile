@@ -5,6 +5,12 @@ dep-metalinter:
 check: check-metalinter
 check-metalinter: dep-metalinter
 	@(! gometalinter.v1 --fast --config=scripts/metalinter.json ./... | read) || exit 1
+status: status-metalinter
+status-metalinter: dep-metalinter
+	@gometalinter.v1 --fast --config=scripts/metalinter.json ./...
+report: report-metalinter
+report-metalinter: dep-metalinter
+	@gometalinter.v1 --config=scripts/metalinter.json ./...
 test:
 	go test -v $$(go list ./... | grep -v /vendor/)
 coverage:
