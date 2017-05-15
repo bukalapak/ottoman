@@ -1,0 +1,103 @@
+package jose_test
+
+import (
+	"testing"
+
+	"github.com/bukalapak/ottoman/crypto/jose"
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	rsaPublicKey = `
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu640zTlbnoC6t9lvXM01
+hMa1C0lDJB9FJH2pN2JiZUoRV91k/8uWKdGAEQMTlub0ehXqKcHTRdzRwG3zMkNH
+UIeVJL/Fp/Lxaqc9qeFHcZQM+zp4Bo9QS/ITyYCb5bZ3W3RaoZJHoMFD7uSVravJ
+h7UAgBi3hpkLUtOcZJQzD3jOQDR4IRAZBf0gNJHXnK6ltoGzuDeu8gv10JTR35xp
+K2RoIQxPijtR0xFH8AyqbuKT1mZ+0JOxC7sm1AO+whyIAfXFVM74CtG/NkAgtNiM
+KeQjPeIf3LxyknUmJpQdLJxAGVFCHpSAsJ9O/mgCD5O5gtmziaIkktZion1tfzqS
+QQIDAQAB
+-----END PUBLIC KEY-----
+	`
+
+	rsaPrivateKey = `
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAu640zTlbnoC6t9lvXM01hMa1C0lDJB9FJH2pN2JiZUoRV91k
+/8uWKdGAEQMTlub0ehXqKcHTRdzRwG3zMkNHUIeVJL/Fp/Lxaqc9qeFHcZQM+zp4
+Bo9QS/ITyYCb5bZ3W3RaoZJHoMFD7uSVravJh7UAgBi3hpkLUtOcZJQzD3jOQDR4
+IRAZBf0gNJHXnK6ltoGzuDeu8gv10JTR35xpK2RoIQxPijtR0xFH8AyqbuKT1mZ+
+0JOxC7sm1AO+whyIAfXFVM74CtG/NkAgtNiMKeQjPeIf3LxyknUmJpQdLJxAGVFC
+HpSAsJ9O/mgCD5O5gtmziaIkktZion1tfzqSQQIDAQABAoIBAQCMEuPju4huzyMM
+bmMYPyxPccLTrpVG03PWXVc7N9m6QUKacmmcJEVp5quPht1LBgq3R73h9oCJptqB
+pU4aWG5UYyzkJaEOzVpzQGjcbn/U/CuIIcZNFw9V71HnVW6FTt7cSgYOis+c4kGi
+fcZcvVcHSwcZk9j9wyHZaohR5O4K/9VPPVdWzKDMhqfqiVrQelZwlLJBxl+Mkezk
+zh7RWTTS/e2fbPXy0eWg4zFl+eWDxWGoZ28F6mc7GaXydypdSRASQ59Rbtd6JxeX
+srhQ2Icm2AGzC0tbyfJpPgfKRQ0C012BPODMKQ7ABfytVXgVfXVDdz6axkM3p/6+
+C0QhuguVAoGBAPB0NUrI2PwK6Qa4pkx6na4DrXCCEqmxujVoJ5qLPs+SzDD5z7jG
+m9+AXCgzuvdd8TdwMEpUzdnWszSihSFdpEs2h0QKpiGrrbmvOk7+uNnarjc15AKp
+lbEk0X3LT8wsDjAaCLW3x7VfNGwTX33uGIczbawC0Sj4FIf4wMBJOCMzAoGBAMfQ
+iUsqe5AOHdu1bsYE7H0Q8+l91WsQduICnSDOXsV9ov0TzkpMu6jYMjG1IbFR4P91
+eRR+JuZ/ZKw46QdqgzCegahatpA+hVL9Dv/JY+MyPE9CG8xHpTE3NKTKbZFPb8B+
+Lf9Nxyxw37oXyVz2HHy+2LgP38Sv1np4nNlbo7S7AoGANqvldhSGqX/9jcasIRV8
+BpXVeJBKmATN9tiwsIXaiS2yeaxDG5sk08OGsKlaaGYWs2kxwaTYjSAw7NXK+VQm
+R+elB8Z4EY3MWTzLQCzQcNA07l61chmG7JkXfMeeZCjcLPmuY0rfAJEeBTi+bI6X
+Sx5ZYFPfpLYLTQM1KEM9nVsCgYBkBlFkLk0SjO6HeKiOOhLEfMMNJG+8m85XT2Wm
+8YfhpwX7WHnRGd5rJGbkGT9Xi5xtZToKdyg0BJu51vdYPgqUQRS42UhApvuI0qM6
+im8VYaVtK7PMrCTWoUMaJzd4IWLY4pFWF3JYHdzxRE0J2y3hiIvmgBPNWxSr1Er4
+R/aIVwKBgHypjoQksn3kkS+mnJXNswzLg0Gthqewwwow6V/0xWvYB9R3p3NANElA
+tP6kYzVHbIq/ThHXZQtE5TfITct8cAELjqaIudt3oWpDVl4FT4/cgYTUyP1uwc+9
+yfq9giUwsPZO4tt1+O6aeBBgawpkbbqcaanOSZ+laVELluQOV1X9
+-----END RSA PRIVATE KEY-----
+`
+
+	x509PublicCert = `
+-----BEGIN CERTIFICATE-----
+MIIDtTCCAp2gAwIBAgIJAO66xuKVqWiqMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
+BAYTAklEMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMTcwMTMxMDYwODE0WhcNMTgwMTMxMDYwODE0WjBF
+MQswCQYDVQQGEwJJRDETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50
+ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+CgKCAQEAu640zTlbnoC6t9lvXM01hMa1C0lDJB9FJH2pN2JiZUoRV91k/8uWKdGA
+EQMTlub0ehXqKcHTRdzRwG3zMkNHUIeVJL/Fp/Lxaqc9qeFHcZQM+zp4Bo9QS/IT
+yYCb5bZ3W3RaoZJHoMFD7uSVravJh7UAgBi3hpkLUtOcZJQzD3jOQDR4IRAZBf0g
+NJHXnK6ltoGzuDeu8gv10JTR35xpK2RoIQxPijtR0xFH8AyqbuKT1mZ+0JOxC7sm
+1AO+whyIAfXFVM74CtG/NkAgtNiMKeQjPeIf3LxyknUmJpQdLJxAGVFCHpSAsJ9O
+/mgCD5O5gtmziaIkktZion1tfzqSQQIDAQABo4GnMIGkMB0GA1UdDgQWBBQbbep6
+PDzuhKWAqAgjSXZY2wMiOTB1BgNVHSMEbjBsgBQbbep6PDzuhKWAqAgjSXZY2wMi
+OaFJpEcwRTELMAkGA1UEBhMCSUQxEzARBgNVBAgTClNvbWUtU3RhdGUxITAfBgNV
+BAoTGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZIIJAO66xuKVqWiqMAwGA1UdEwQF
+MAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAKt5QJNwOJOY3X+vlrmgT7bdSN7XXqhB
+jQ62y1EKx9TqEfLXDqHEE94WRGxXBFerRB8NkL9/vofP3awsMwioPvjkBExu+3Yv
+9CmwhScA5YXAv0J6MxybBK4xUzflou+fM9+jkooS1cc/XEAYOba4+MWLdpTeUUiM
+WCQK0a3s9OhYv3A0Wi+GFNWu43RpcWTVVUvSJTzUpO7CXld1vagHAsipuhLJXeg8
+ekiAph6TBohG0g09Nx3vDLTh+gSWgCglQ+Ohkun3nUoRW6azQ6yEOd3egG4JoZ74
+odSuTwcSjXsH6+1LfTxaRqMuTHTqA20r6mkY1qfD3PH/Fb6n+YWNoAE=
+-----END CERTIFICATE-----
+`
+)
+
+func TestRSAPrivateKey(t *testing.T) {
+	key, err := jose.RSAPrivateKey([]byte(rsaPrivateKey))
+	assert.Nil(t, err)
+	assert.Nil(t, key.Validate())
+
+	key, err = jose.RSAPrivateKey([]byte(`---INVALID RSA PRIVATE KEY---`))
+	assert.NotNil(t, err)
+	assert.Nil(t, key)
+}
+
+func TestRSAPublicKey(t *testing.T) {
+	key1, err := jose.RSAPublicKey([]byte(rsaPublicKey))
+	assert.Nil(t, err)
+	assert.NotNil(t, key1)
+
+	key2, err := jose.RSAPublicKey([]byte(x509PublicCert))
+	assert.Nil(t, err)
+	assert.NotNil(t, key2)
+
+	assert.Equal(t, key1, key2)
+
+	key3, err := jose.RSAPublicKey([]byte(`---INVALID PUBLIC KEY---`))
+	assert.NotNil(t, err)
+	assert.Nil(t, key3)
+}
