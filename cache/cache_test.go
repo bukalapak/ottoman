@@ -109,17 +109,14 @@ func NewResolver() cache.Resolver {
 	return &Match{}
 }
 
-type FailureTransport struct{}
-
-func (t *FailureTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	return nil, errors.New("Connection failure")
-}
-
 func (m *Match) Resolve(key string, r *http.Request) *http.Request {
 	req := new(http.Request)
-	req.URL = new(url.URL)
+	url := new(url.URL)
+
 	*req = *r
-	*req.URL = *r.URL
+	*url = *r.URL
+
+	req.URL = url
 
 	switch key {
 	case "zoo", "bad":
@@ -129,6 +126,12 @@ func (m *Match) Resolve(key string, r *http.Request) *http.Request {
 	}
 
 	return req
+}
+
+type FailureTransport struct{}
+
+func (t *FailureTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	return nil, errors.New("Connection failure")
 }
 
 func NewRemoteServer() *httptest.Server {
