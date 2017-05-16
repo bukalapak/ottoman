@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -101,10 +100,7 @@ func TestDumpBody_failure(t *testing.T) {
 }
 
 func TestRequest_concurrent(t *testing.T) {
-	num := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		num = num + 1
-
 		b := new(bytes.Buffer)
 
 		if _, err := b.ReadFrom(r.Body); err != nil {
@@ -112,10 +108,7 @@ func TestRequest_concurrent(t *testing.T) {
 			return
 		}
 
-		m := map[string]string{
-			"num":  strconv.Itoa(num),
-			"body": b.String(),
-		}
+		m := map[string]string{"body": b.String()}
 
 		z, err := json.Marshal(m)
 		if err != nil {
