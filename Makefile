@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 dep: dep-metalinter
 dep-metalinter:
 	@go get gopkg.in/alecthomas/gometalinter.v1
