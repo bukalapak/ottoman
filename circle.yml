@@ -5,6 +5,9 @@ machine:
     PROJECT_PARENT_PATH: "${PROJECT_GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}"
     PROJECT_PATH: "${PROJECT_PARENT_PATH}/${CIRCLE_PROJECT_REPONAME}"
     GOPATH: "${HOME}/.go_workspace:/usr/local/go_workspace:${PROJECT_GOPATH}"
+  services:
+    - redis
+    - memcached
 dependencies:
   pre:
     - mkdir -p download
