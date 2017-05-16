@@ -1,6 +1,5 @@
 codecov:
   bot: bukalapakbot
-  token: 13ff258b-f057-4ddf-af7d-d5aa26798fdc
 coverage:
   status:
     patch:
