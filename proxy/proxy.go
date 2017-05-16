@@ -3,6 +3,7 @@ package proxy
 import (
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/subosito/httpx"
 )
@@ -32,6 +33,10 @@ type Proxy struct {
 
 func NewProxy(target Targeter) *Proxy {
 	return &Proxy{target: target}
+}
+
+func (p *Proxy) Target() *url.URL {
+	return p.target.Target()
 }
 
 func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {

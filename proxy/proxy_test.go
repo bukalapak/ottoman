@@ -61,6 +61,7 @@ func (suite *ProxySuite) TestProxy() {
 	x := proxy.NewProxy(suite.Targeter())
 	x.Forward(rec, req, Transform{})
 
+	assert.Equal(suite.T(), suite.backend.URL, x.Target().String())
 	assert.Equal(suite.T(), http.StatusOK, rec.Code)
 	assert.Equal(suite.T(), "application/json", rec.Header().Get("Content-Type"))
 	assert.Equal(suite.T(), `{"foo":"bar"}`, strings.TrimSpace(rec.Body.String()))
