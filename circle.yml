@@ -26,4 +26,4 @@ test:
   override:
     - cd "${PROJECT_PATH}" && make check && make coverage
   post:
-    - cd "${PROJECT_PATH}" && bash <(curl -s https://codecov.io/bash) -t ed91dd0c-e51a-4770-a1c8-20fa49c9775f
+    - cd "${PROJECT_PATH}" && bash <(curl -s https://codecov.io/bash)
