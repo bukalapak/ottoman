@@ -11,11 +11,14 @@ dependencies:
     - test -e download/$GODIST || curl -o download/$GODIST https://storage.googleapis.com/golang/$GODIST
     - sudo rm -rf /usr/local/go
     - sudo tar -C /usr/local -xzf download/$GODIST
+    - go get -u github.com/golang/dep/cmd/dep
     - go version
   override:
     - mkdir -p "${PROJECT_PARENT_PATH}"
     - rsync -avC "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${PROJECT_PATH}"
 test:
+  pre:
+    - cd "${PROJECT_PATH}" && dep ensure -v
   override:
     - cd "${PROJECT_PATH}" && make check && make coverage
   post:

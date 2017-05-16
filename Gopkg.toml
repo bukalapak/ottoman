@@ -1,0 +1,44 @@
+[[dependencies]]
+  name = "github.com/stretchr/testify"
+  version = "^1.1.4"
+
+[[dependencies]]
+  name = "github.com/go-restit/lzjson"
+  branch = "master"
+
+[[dependencies]]
+  name = "gopkg.in/vmihailenco/msgpack.v2"
+  version = "^v2.9.1"
+
+[[dependencies]]
+  name = "github.com/oklog/ulid"
+  version = "^v0.3.0"
+
+[[dependencies]]
+  name = "go.uber.org/zap"
+  version = "^v1.4.0"
+
+[[dependencies]]
+  name = "github.com/bradfitz/gomemcache"
+  branch = "master"
+
+[[dependencies]]
+  name = "github.com/subosito/envx"
+  branch = "master"
+
+[[dependencies]]
+  name = "github.com/subosito/gotenv"
+  version = "^v1.1.0"
+
+[[dependencies]]
+  name = "gopkg.in/redis.v3"
+  version = "^v3.6.4"
+
+[[dependencies]]
+  name = "github.com/subosito/httpx"
+  branch = "master"
+
+[[dependencies]]
+  name = "gopkg.in/square/go-jose.v2"
+  version = "^v2.1.0"
+
