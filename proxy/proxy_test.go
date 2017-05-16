@@ -39,9 +39,9 @@ func (suite *ProxySuite) Targeter() proxy.Targeter {
 	return t
 }
 
-type Director struct{}
+type Transform struct{}
 
-func (s Director) Director(t proxy.Targeter) func(r *http.Request) {
+func (s Transform) Director(t proxy.Targeter) func(r *http.Request) {
 	return func(r *http.Request) {
 		u := t.Target()
 		r.URL.Scheme = u.Scheme
@@ -49,16 +49,22 @@ func (s Director) Director(t proxy.Targeter) func(r *http.Request) {
 	}
 }
 
+func (s Transform) ModifyResponse(resp *http.Response) error {
+	resp.Header.Set("X-Modified", "1")
+	return nil
+}
+
 func (suite *ProxySuite) TestProxy() {
 	req, _ := http.NewRequest("GET", "/", nil)
 	rec := httptest.NewRecorder()
 
 	x := proxy.NewProxy(suite.Targeter())
-	x.Forward(rec, req, Director{})
+	x.Forward(rec, req, Transform{})
 
 	assert.Equal(suite.T(), http.StatusOK, rec.Code)
 	assert.Equal(suite.T(), "application/json", rec.Header().Get("Content-Type"))
 	assert.Equal(suite.T(), `{"foo":"bar"}`, strings.TrimSpace(rec.Body.String()))
+	assert.Equal(suite.T(), "1", rec.Header().Get("X-Modified"))
 }
 
 func TestProxySuite(t *testing.T) {
