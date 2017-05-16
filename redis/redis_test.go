@@ -102,6 +102,25 @@ func (suite *RedisSuite) TestReadMulti() {
 	}
 }
 
+func (suite *RedisSuite) TestIncr() {
+	n, err := suite.c.Incr("foo")
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int64(1), n)
+}
+
+func (suite *RedisSuite) TestExpire() {
+	err := suite.client.Set("foo", "bar", time.Minute).Err()
+	assert.Nil(suite.T(), err)
+
+	b, err := suite.c.Expire("foo", time.Hour)
+	assert.Nil(suite.T(), err)
+	assert.True(suite.T(), b)
+
+	cmd := suite.client.TTL("foo")
+	assert.Nil(suite.T(), cmd.Err())
+	assert.Equal(suite.T(), time.Hour, cmd.Val())
+}
+
 func TestRedisSuite(t *testing.T) {
 	suite.Run(t, new(RedisSuite))
 }

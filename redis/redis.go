@@ -2,6 +2,8 @@
 package redis
 
 import (
+	"time"
+
 	"github.com/bukalapak/ottoman/encoding/json"
 	redisc "gopkg.in/redis.v3"
 )
@@ -61,6 +63,22 @@ func (c *Redis) ReadMulti(keys []string) (map[string][]byte, error) {
 	}
 
 	return z, nil
+}
+
+// Incr increase counter for given key.
+func (c *Redis) Incr(key string) (int64, error) {
+	cmd := c.client.Incr(key)
+	n, err := cmd.Result()
+
+	return n, err
+}
+
+// Expire sets time expiration on a key
+func (c *Redis) Expire(key string, expiration time.Duration) (bool, error) {
+	cmd := c.client.Expire(key, expiration)
+	b, err := cmd.Result()
+
+	return b, err
 }
 
 // Name returns cache storage identifier.
