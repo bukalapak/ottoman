@@ -9,6 +9,7 @@ import (
 )
 
 type Transformer interface {
+	http.RoundTripper
 	Director
 	Modifier
 }
@@ -26,9 +27,8 @@ type Forwarder interface {
 }
 
 type Proxy struct {
-	target    Targeter
-	Transport http.RoundTripper
-	Logger    *log.Logger
+	target Targeter
+	Logger *log.Logger
 }
 
 func NewProxy(target Targeter) *Proxy {
@@ -42,7 +42,7 @@ func (p *Proxy) Target() *url.URL {
 func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {
 	proxy := &httpx.ReverseProxy{
 		Director:       n.Director(p.target),
-		Transport:      p.Transport,
+		Transport:      n,
 		ModifyResponse: n.ModifyResponse,
 		ErrorLog:       p.Logger,
 	}

@@ -49,6 +49,10 @@ func (s Transform) Director(t proxy.Targeter) func(r *http.Request) {
 	}
 }
 
+func (s Transform) RoundTrip(r *http.Request) (*http.Response, error) {
+	return http.DefaultTransport.RoundTrip(r)
+}
+
 func (s Transform) ModifyResponse(resp *http.Response) error {
 	resp.Header.Set("X-Modified", "1")
 	return nil
