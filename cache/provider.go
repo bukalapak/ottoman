@@ -63,7 +63,10 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 		return b, nil
 	}
 
-	req := s.Resolver.Resolve(key, r)
+	req, err := s.Resolver.Resolve(key, r)
+	if err != nil {
+		return nil, err
+	}
 
 	return s.fetch(req)
 }

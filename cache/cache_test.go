@@ -109,7 +109,7 @@ func NewResolver() cache.Resolver {
 	return &Match{}
 }
 
-func (m *Match) Resolve(key string, r *http.Request) *http.Request {
+func (m *Match) Resolve(key string, r *http.Request) (*http.Request, error) {
 	req := new(http.Request)
 	url := new(url.URL)
 
@@ -123,9 +123,11 @@ func (m *Match) Resolve(key string, r *http.Request) *http.Request {
 		req.URL.Path = "/" + key
 	case "api:zoo":
 		req.URL.Path = "/zoo"
+	case "err":
+		return nil, errors.New("unknown cache")
 	}
 
-	return req
+	return req, nil
 }
 
 type FailureTransport struct{}

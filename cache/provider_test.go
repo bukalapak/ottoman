@@ -91,6 +91,20 @@ func TestProvider_Fetch_fromCache(t *testing.T) {
 	assert.Equal(t, `{"foo":"bar"}`, string(b))
 }
 
+func TestProvider_Fetch_badKey(t *testing.T) {
+	h := NewRemoteServer()
+	defer h.Close()
+
+	q := NewRequest(h.URL)
+	r := NewReader()
+	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
+
+	b, err := c.Fetch("err", q)
+	assert.Equal(t, "unknown cache", err.Error())
+	assert.Nil(t, b)
+}
+
 func TestProvider_Fetch_failure(t *testing.T) {
 	h := NewRemoteServer()
 	defer h.Close()
