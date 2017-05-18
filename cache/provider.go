@@ -89,8 +89,8 @@ func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
 	mb, err := s.ReadMulti(keys)
 	if err != nil {
-		s.Logger.Info("cache",
-			zap.String("method", "LoadMulti"),
+		s.Logger.Info("ottoman/cache",
+			zap.String("method", "ReadMulti"),
 			zap.String("error", err.Error()),
 		)
 	}
@@ -114,8 +114,8 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 
 			z, err := s.Fetch(key, r)
 			if err != nil {
-				s.Logger.Info("cache",
-					zap.String("method", "fetch"),
+				s.Logger.Info("ottoman/cache",
+					zap.String("method", "Fetch"),
 					zap.String("error", err.Error()),
 				)
 			}
@@ -144,7 +144,7 @@ func (s *Engine) fetch(r *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	s.Logger.Info("cache",
+	s.Logger.Info("ottoman/cache",
 		zap.String("request_url", r.URL.String()),
 		zap.Int("request_status", resp.StatusCode),
 	)
