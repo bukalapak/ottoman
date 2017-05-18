@@ -88,13 +88,13 @@ func (c *BadCloser) Read(b []byte) (int, error) { return 0, io.EOF }
 func TestDumpBody_failure(t *testing.T) {
 	c1 := &BadReader{}
 	b2, c2, err := httpclone.DumpBody(c1)
-	assert.Error(t, err, "read error")
+	assert.Equal(t, "read error", err.Error())
 	assert.Nil(t, b2)
 	assert.Equal(t, c1, c2)
 
 	c3 := &BadCloser{}
 	b4, c4, err := httpclone.DumpBody(c3)
-	assert.Error(t, err, "read error")
+	assert.Equal(t, "close error", err.Error())
 	assert.Nil(t, b4)
 	assert.Equal(t, c3, c4)
 }
