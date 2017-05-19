@@ -2,6 +2,7 @@
 
 OUTFILE=$1
 SKIPPED=(
+  github.com/bukalapak/ottoman/qtest
   github.com/bukalapak/ottoman
 )
 
