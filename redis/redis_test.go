@@ -29,8 +29,8 @@ func (suite *RedisSuite) TearDownSuite() {
 
 func (suite *RedisSuite) SetupTest() {
 	options := &redisc.Options{
-		Addr: os.Getenv("REDIS_CACHE_ADDR"),
-		DB:   int64(envx.Int("REDIS_CACHE_DB")),
+		Addr: os.Getenv("REDIS_ADDR"),
+		DB:   int64(envx.Int("REDIS_DB")),
 	}
 
 	suite.client = redisc.NewClient(options)
