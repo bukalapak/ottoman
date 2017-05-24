@@ -25,6 +25,7 @@ type Fetcher interface {
 // Resolver is the interface for resolving cache key to http request
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
+	ResolveRequest(r *http.Request) (*http.Request, error)
 }
 
 // Provider wraps several interfaces with additional identifier for getting information about the implementation.

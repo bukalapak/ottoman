@@ -110,13 +110,7 @@ func NewResolver() cache.Resolver {
 }
 
 func (m *Match) Resolve(key string, r *http.Request) (*http.Request, error) {
-	req := new(http.Request)
-	url := new(url.URL)
-
-	*req = *r
-	*url = *r.URL
-
-	req.URL = url
+	req, _ := m.ResolveRequest(r)
 
 	switch key {
 	case "zoo", "bad":
@@ -126,6 +120,18 @@ func (m *Match) Resolve(key string, r *http.Request) (*http.Request, error) {
 	case "err":
 		return nil, errors.New("unknown cache")
 	}
+
+	return req, nil
+}
+
+func (m *Match) ResolveRequest(r *http.Request) (*http.Request, error) {
+	req := new(http.Request)
+	url := new(url.URL)
+
+	*req = *r
+	*url = *r.URL
+
+	req.URL = url
 
 	return req, nil
 }
