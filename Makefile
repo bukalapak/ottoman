@@ -14,7 +14,7 @@ report: report-metalinter
 report-metalinter: dep-metalinter
 	@gometalinter.v1 --config=scripts/metalinter.json ./...
 test:
-	go test -v $$(go list ./... | grep -Ev "vendor|qtest")
+	go test -race -v $$(go list ./... | grep -Ev "vendor|qtest")
 coverage:
 	@./scripts/coverage.sh coverage.out
 cover:
