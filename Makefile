@@ -6,12 +6,9 @@ dep-metalinter:
 	@gometalinter.v1 --install > /dev/null
 check: check-metalinter
 check-metalinter: dep-metalinter
-	@(! gometalinter.v1 --fast --config=scripts/metalinter.json ./... | read) || exit 1
-status: status-metalinter
-status-metalinter: dep-metalinter
 	@gometalinter.v1 --fast --config=scripts/metalinter.json ./...
-report: report-metalinter
-report-metalinter: dep-metalinter
+check-all: check-all-metalinter
+check-all-metalinter: dep-metalinter
 	@gometalinter.v1 --config=scripts/metalinter.json ./...
 test:
 	go test -race -v $$(go list ./... | grep -Ev "vendor|qtest")
