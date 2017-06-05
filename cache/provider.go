@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -39,6 +40,17 @@ func (s *Engine) Namespace() string {
 // Read reads cache data on the cache backend based on key supplied.
 func (s *Engine) Read(key string) ([]byte, error) {
 	return s.engine.Read(s.normalize(key))
+}
+
+// ReadFallback reads cache data by keys. Keys sequences are important.
+func (s *Engine) ReadFallback(keys []string) ([]byte, error) {
+	for _, k := range keys {
+		if b, err := s.Read(k); err == nil {
+			return b, err
+		}
+	}
+
+	return nil, fmt.Errorf("unknown cache keys: %s", strings.Join(keys, ","))
 }
 
 // ReadMap reads cache data as map[string]interface{}.

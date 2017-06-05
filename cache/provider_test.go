@@ -38,6 +38,24 @@ func TestProvider_Read_namespace(t *testing.T) {
 	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
 }
 
+func TestProvider_ReadFallback(t *testing.T) {
+	r := NewReader()
+	c := cache.NewProvider(r)
+
+	b, err := c.ReadFallback([]string{"foo-old", "foo"})
+	assert.Nil(t, err)
+	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
+}
+
+func TestProvider_ReadFallback_unknownKeys(t *testing.T) {
+	r := NewReader()
+	c := cache.NewProvider(r)
+
+	b, err := c.ReadFallback([]string{"unknown-old", "unknown"})
+	assert.Equal(t, "unknown cache keys: unknown-old,unknown", err.Error())
+	assert.Nil(t, b)
+}
+
 func TestProvider_ReadMap(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
