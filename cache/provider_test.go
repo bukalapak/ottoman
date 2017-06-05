@@ -38,20 +38,20 @@ func TestProvider_Read_namespace(t *testing.T) {
 	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
 }
 
-func TestProvider_ReadFallback(t *testing.T) {
+func TestProvider_ReadSwitch(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
 
-	b, err := c.ReadFallback([]string{"foo-old", "foo"})
+	b, err := c.ReadSwitch([]string{"foo-old", "foo"})
 	assert.Nil(t, err)
 	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
 }
 
-func TestProvider_ReadFallback_unknownKeys(t *testing.T) {
+func TestProvider_ReadSwitch_unknownKeys(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
 
-	b, err := c.ReadFallback([]string{"unknown-old", "unknown"})
+	b, err := c.ReadSwitch([]string{"unknown-old", "unknown"})
 	assert.Equal(t, "unknown cache keys: unknown-old,unknown", err.Error())
 	assert.Nil(t, b)
 }
@@ -150,6 +150,35 @@ func TestProvider_Fetch_timeout(t *testing.T) {
 
 	b, err := c.Fetch("zoo", q)
 	assert.Contains(t, err.Error(), "Client.Timeout exceeded")
+	assert.Nil(t, b)
+}
+
+func TestProvider_FetchSwitch(t *testing.T) {
+	h := NewRemoteServer()
+	defer h.Close()
+
+	q := NewRequest(h.URL)
+	r := NewReader()
+	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
+
+	b, err := c.FetchSwitch([]string{"zoo", "foo"}, q)
+	assert.Nil(t, err)
+	assert.Equal(t, `{"foo":"bar"}`, string(b))
+}
+
+func TestProvider_FetchSwitch_failure(t *testing.T) {
+	h := NewRemoteServer()
+	defer h.Close()
+
+	q := NewRequest(h.URL)
+	r := NewReader()
+	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Transport = &FailureTransport{}
+
+	b, err := c.FetchSwitch([]string{"zoo", "boo"}, q)
+	assert.NotNil(t, err)
 	assert.Nil(t, b)
 }
 

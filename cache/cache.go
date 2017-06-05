@@ -15,15 +15,16 @@ type Reader interface {
 	ReadMulti(keys []string) (map[string][]byte, error)
 }
 
-type FallbackReader interface {
-	ReadFallback(keys []string) ([]byte, error)
-}
-
 // Fetcher is the interface for getting cache key from cache engine as well as to remote backend
 type Fetcher interface {
 	Fetch(key string, r *http.Request) ([]byte, error)
 	FetchMap(key string, r *http.Request) (map[string]interface{}, error)
 	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
+}
+
+type Switcher interface {
+	ReadSwitch(keys []string) ([]byte, error)
+	FetchSwitch(keys []string, r *http.Request) ([]byte, error)
 }
 
 // Resolver is the interface for resolving cache key to http request
@@ -36,7 +37,7 @@ type Resolver interface {
 type Provider interface {
 	Reader
 	Fetcher
-	FallbackReader
+	Switcher
 	Namespace() string
 }
 

@@ -42,8 +42,8 @@ func (s *Engine) Read(key string) ([]byte, error) {
 	return s.engine.Read(s.normalize(key))
 }
 
-// ReadFallback reads cache data by keys. Keys sequences are important.
-func (s *Engine) ReadFallback(keys []string) ([]byte, error) {
+// ReadSwitch reads cache data by keys. Keys sequences are important.
+func (s *Engine) ReadSwitch(keys []string) ([]byte, error) {
 	for _, k := range keys {
 		if b, err := s.Read(k); err == nil {
 			return b, err
@@ -81,6 +81,14 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 	}
 
 	return s.fetch(req)
+}
+
+func (s *Engine) FetchSwitch(keys []string, r *http.Request) ([]byte, error) {
+	if b, err := s.ReadSwitch(keys); err == nil {
+		return b, err
+	}
+
+	return s.Fetch(keys[len(keys)-1], r)
 }
 
 func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, error) {
