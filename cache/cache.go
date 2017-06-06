@@ -22,11 +22,6 @@ type Fetcher interface {
 	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
 }
 
-type Switcher interface {
-	ReadSwitch(keys []string) ([]byte, error)
-	FetchSwitch(keys []string, r *http.Request) ([]byte, error)
-}
-
 // Resolver is the interface for resolving cache key to http request
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
@@ -37,7 +32,6 @@ type Resolver interface {
 type Provider interface {
 	Reader
 	Fetcher
-	Switcher
 	Namespace() string
 }
 

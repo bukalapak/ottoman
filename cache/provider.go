@@ -2,7 +2,6 @@ package cache
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -42,17 +41,6 @@ func (s *Engine) Read(key string) ([]byte, error) {
 	return s.engine.Read(s.normalize(key))
 }
 
-// ReadSwitch reads cache data by keys. Keys sequences are important.
-func (s *Engine) ReadSwitch(keys []string) ([]byte, error) {
-	for _, k := range keys {
-		if b, err := s.Read(k); err == nil {
-			return b, err
-		}
-	}
-
-	return nil, fmt.Errorf("unknown cache keys: %s", strings.Join(keys, ","))
-}
-
 // ReadMap reads cache data as map[string]interface{}.
 // It's also expand any cache identifier with actual cache data.
 func (s *Engine) ReadMap(key string) (map[string]interface{}, error) {
@@ -81,14 +69,6 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 	}
 
 	return s.fetch(req)
-}
-
-func (s *Engine) FetchSwitch(keys []string, r *http.Request) ([]byte, error) {
-	if b, err := s.ReadSwitch(keys); err == nil {
-		return b, err
-	}
-
-	return s.Fetch(keys[len(keys)-1], r)
 }
 
 func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, error) {
