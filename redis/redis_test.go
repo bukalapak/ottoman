@@ -28,13 +28,15 @@ func (suite *RedisSuite) TearDownSuite() {
 }
 
 func (suite *RedisSuite) SetupTest() {
-	options := &redisc.Options{
+	suite.client = redisc.NewClient(&redisc.Options{
 		Addr: os.Getenv("REDIS_ADDR"),
 		DB:   int64(envx.Int("REDIS_DB")),
-	}
+	})
 
-	suite.client = redisc.NewClient(options)
-	suite.c = redis.New(options)
+	suite.c = redis.New(&redis.Option{
+		Addrs: []string{os.Getenv("REDIS_ADDR")},
+		DB:    int64(envx.Int("REDIS_DB")),
+	})
 }
 
 func (suite *RedisSuite) TearDownTest() {

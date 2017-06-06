@@ -8,16 +8,43 @@ import (
 	redisc "gopkg.in/redis.v3"
 )
 
+type Provider interface {
+	Get(key string) *redisc.StringCmd
+	MGet(keys ...string) *redisc.SliceCmd
+	Incr(key string) *redisc.IntCmd
+	Expire(key string, expiration time.Duration) *redisc.BoolCmd
+}
+
+type Option struct {
+	Addrs    []string
+	Password string
+
+	// A database to be selected after connecting to server.
+	// Redis Cluster ignores this value.
+	DB int64
+}
+
 // Redis is a Redis client representing a pool of zero or more underlying connections.
 // It's saafe for concurrent use by multiple goroutines.
 type Redis struct {
-	client *redisc.Client
+	client Provider
 }
 
-// New returns a client to the redis server specified by redisc.Options.
-func New(opts *redisc.Options) *Redis {
+// New returns a client to the redis server specified by Option.
+func New(opts *Option) *Redis {
+	if len(opts.Addrs) == 1 {
+		return &Redis{
+			client: redisc.NewClient(&redisc.Options{
+				Addr: opts.Addrs[len(opts.Addrs)-1],
+				DB:   opts.DB,
+			}),
+		}
+	}
+
 	return &Redis{
-		client: redisc.NewClient(opts),
+		client: redisc.NewClusterClient(&redisc.ClusterOptions{
+			Addrs: opts.Addrs,
+		}),
 	}
 }
 
