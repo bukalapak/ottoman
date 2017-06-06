@@ -10,6 +10,10 @@ check-metalinter: dep-metalinter
 check-all: check-all-metalinter
 check-all-metalinter: dep-metalinter
 	@gometalinter.v1 --config=scripts/metalinter.json ./...
+redis-cluster-start:
+	./scripts/redis-cluster.sh start
+redis-cluster-stop:
+	./scripts/redis-cluster.sh stop
 test:
 	go test -race -v $$(go list ./... | grep -Ev "vendor|qtest")
 coverage:
