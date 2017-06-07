@@ -28,22 +28,27 @@ type Option struct {
 // It's saafe for concurrent use by multiple goroutines.
 type Redis struct {
 	client Provider
+	name   string
 }
 
 // New returns a client to the redis server specified by Option.
 func New(opts *Option) *Redis {
 	if len(opts.Addrs) == 1 {
 		return &Redis{
+			name: "Redis",
 			client: redisc.NewClient(&redisc.Options{
-				Addr: opts.Addrs[len(opts.Addrs)-1],
-				DB:   opts.DB,
+				Addr:     opts.Addrs[0],
+				DB:       opts.DB,
+				Password: opts.Password,
 			}),
 		}
 	}
 
 	return &Redis{
+		name: "Redis Cluster",
 		client: redisc.NewClusterClient(&redisc.ClusterOptions{
-			Addrs: opts.Addrs,
+			Addrs:    opts.Addrs,
+			Password: opts.Password,
 		}),
 	}
 }
@@ -80,6 +85,10 @@ func (c *Redis) ReadMulti(keys []string) (map[string][]byte, error) {
 	cmd := c.client.MGet(keys...)
 	z := make(map[string][]byte)
 
+	if cmd.Err() != nil {
+		return nil, cmd.Err()
+	}
+
 	for i, k := range keys {
 		v, ok := cmd.Val()[i].(string)
 		if !ok {
@@ -110,5 +119,5 @@ func (c *Redis) Expire(key string, expiration time.Duration) (bool, error) {
 
 // Name returns cache storage identifier.
 func (c *Redis) Name() string {
-	return "Redis"
+	return c.name
 }
