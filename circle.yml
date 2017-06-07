@@ -8,6 +8,9 @@ machine:
     - redis
     - memcached
 dependencies:
+  cache_directories:
+    - "redis-cluster"
+    - "vendor"
   pre:
     - go version
     - go get -u github.com/golang/dep/cmd/dep
@@ -18,6 +21,7 @@ dependencies:
 test:
   pre:
     - cd "${PROJECT_PATH}" && dep ensure -v
+    - cd "${PROJECT_PATH}" && make redis-cluster-start
   override:
     - cd "${PROJECT_PATH}" && make check && make coverage
   post:
