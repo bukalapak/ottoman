@@ -161,7 +161,7 @@ type RedisClusterSuite struct {
 }
 
 func (suite *RedisClusterSuite) SetupTest() {
-	addrs := strings.Split(os.Getenv("REDIS_CLUSTER_ADDRS"), ",")
+	addrs := strings.Split(os.Getenv("REDIS_CLUSTER_ADDR"), ",")
 
 	suite.client = redisc.NewClusterClient(&redisc.ClusterOptions{
 		Addrs: addrs,
