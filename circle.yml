@@ -7,6 +7,10 @@ machine:
   services:
     - redis
     - memcached
+checkout:
+  post:
+    - mkdir -p "${PROJECT_PARENT_PATH}"
+    - rsync -avC "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${PROJECT_PATH}"
 dependencies:
   cache_directories:
     - "redis-cluster"
@@ -16,12 +20,9 @@ dependencies:
     - go get -u github.com/golang/dep/cmd/dep
     - go get -u gopkg.in/alecthomas/gometalinter.v1
   override:
-    - mkdir -p "${PROJECT_PARENT_PATH}"
-    - rsync -avC "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${PROJECT_PATH}"
-test:
-  pre:
     - cd "${PROJECT_PATH}" && dep ensure -v
     - cd "${PROJECT_PATH}" && make redis-cluster-start
+test:
   override:
     - cd "${PROJECT_PATH}" && make check && make coverage
   post:
