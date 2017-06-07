@@ -22,7 +22,6 @@ if [ "$1" == "start" ]; then
   fi
 fi
 
-
 if [ "$1" == "stop" ]; then
   cd ${REDIS_CLUSTER_DIR} && ./create-cluster stop
 fi
