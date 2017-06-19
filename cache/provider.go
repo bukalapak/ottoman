@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -49,20 +48,10 @@ func (s *Engine) ReadMap(key string) (map[string]interface{}, error) {
 
 // ReadMulti bulk reads multiple cache keys.
 func (s *Engine) ReadMulti(keys []string) (map[string][]byte, error) {
-	ks := make([]string, len(keys))
-
-	for i := range keys {
-		ks[i] = s.normalize(keys[i])
-	}
-
-	return s.engine.ReadMulti(ks)
+	return s.engine.ReadMulti(s.normalizeMulti(keys))
 }
 
 func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
-	if b, err := s.Read(key); err == nil {
-		return b, nil
-	}
-
 	req, err := s.Resolver.Resolve(key, r)
 	if err != nil {
 		return nil, err
@@ -87,26 +76,13 @@ func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, 
 }
 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
-	mb, err := s.ReadMulti(keys)
-	if err != nil {
-		s.Logger.Info("ottoman/cache",
-			zap.String("method", "ReadMulti"),
-			zap.String("error", err.Error()),
-		)
-	}
-
-	if len(mb) == 0 {
-		mb = map[string][]byte{}
-	}
-
-	cs := s.cachedKeys(mb, keys)
-	us := s.uncachedKeys(cs, keys)
-
-	mutex := &sync.Mutex{}
+	ks := s.normalizeMulti(keys)
+	mb := make(map[string][]byte, len(ks))
+	mx := &sync.Mutex{}
 
 	var wg sync.WaitGroup
 
-	for _, k := range us {
+	for _, k := range ks {
 		wg.Add(1)
 
 		go func(key string) {
@@ -120,9 +96,9 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 				)
 			}
 
-			mutex.Lock()
+			mx.Lock()
 			mb[key] = z
-			mutex.Unlock()
+			mx.Unlock()
 		}(k)
 	}
 
@@ -133,6 +109,16 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 
 func (s *Engine) normalize(key string) string {
 	return Normalize(key, s.Prefix)
+}
+
+func (s *Engine) normalizeMulti(keys []string) []string {
+	ks := make([]string, len(keys))
+
+	for i := range keys {
+		ks[i] = s.normalize(keys[i])
+	}
+
+	return ks
 }
 
 func (s *Engine) FetchRequest(r *http.Request) ([]byte, error) {
@@ -169,40 +155,4 @@ func (s *Engine) httpTransport() http.RoundTripper {
 	}
 
 	return http.DefaultTransport
-}
-
-func (s *Engine) uncachedKeys(cs, keys []string) []string {
-	us := []string{}
-
-	for _, k := range keys {
-		if !sliceContains(cs, k) {
-			us = append(us, s.normalize(k))
-		}
-	}
-
-	return us
-}
-
-func (s *Engine) cachedKeys(mb map[string][]byte, keys []string) []string {
-	cs := []string{}
-
-	for k, b := range mb {
-		for _, y := range keys {
-			if strings.Contains(k, y) && len(b) != 0 {
-				cs = append(cs, s.normalize(y))
-			}
-		}
-	}
-
-	return cs
-}
-
-func sliceContains(ss []string, k string) bool {
-	for _, v := range ss {
-		if v == k {
-			return true
-		}
-	}
-
-	return false
 }

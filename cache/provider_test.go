@@ -77,20 +77,6 @@ func TestProvider_Fetch(t *testing.T) {
 	assert.Equal(t, `{"zoo":"zac"}`, string(b))
 }
 
-func TestProvider_Fetch_fromCache(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	b, err := c.Fetch("foo", q)
-	assert.Nil(t, err)
-	assert.Equal(t, `{"foo":"bar"}`, string(b))
-}
-
 func TestProvider_Fetch_badKey(t *testing.T) {
 	h := NewRemoteServer()
 	defer h.Close()
@@ -195,7 +181,7 @@ func TestProvider_FetchMulti(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, m, 2)
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["zoo"])
-	assert.Equal(t, []byte(`{"foo":"bar"}`), m["foo"])
+	assert.Empty(t, m["foo"])
 }
 
 func TestProvider_FetchMulti_namespace(t *testing.T) {
@@ -217,7 +203,7 @@ func TestProvider_FetchMulti_namespace(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, m, 2)
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["api:zoo"])
-	assert.Equal(t, []byte(`{"foo":"bar"}`), m["api:foo"])
+	assert.Empty(t, m["api:foo"])
 }
 
 func TestProvider_FetchMulti_failure(t *testing.T) {
