@@ -29,10 +29,17 @@ type Resolver interface {
 	ResolveRequest(r *http.Request) (*http.Request, error)
 }
 
+// Normalizer is the interface for normalizing cache key
+type Normalizer interface {
+	Normalize(key string) string
+	NormalizeMulti(keys []string) []string
+}
+
 // Provider wraps several interfaces with additional identifier for getting information about the implementation.
 type Provider interface {
 	Reader
 	Fetcher
+	Normalizer
 	Namespace() string
 }
 

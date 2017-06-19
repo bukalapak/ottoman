@@ -37,18 +37,18 @@ func (s *Engine) Namespace() string {
 
 // Read reads cache data on the cache backend based on key supplied.
 func (s *Engine) Read(key string) ([]byte, error) {
-	return s.engine.Read(s.normalize(key))
+	return s.engine.Read(s.Normalize(key))
 }
 
 // ReadMap reads cache data as map[string]interface{}.
 // It's also expand any cache identifier with actual cache data.
 func (s *Engine) ReadMap(key string) (map[string]interface{}, error) {
-	return s.engine.ReadMap(s.normalize(key))
+	return s.engine.ReadMap(s.Normalize(key))
 }
 
 // ReadMulti bulk reads multiple cache keys.
 func (s *Engine) ReadMulti(keys []string) (map[string][]byte, error) {
-	return s.engine.ReadMulti(s.normalizeMulti(keys))
+	return s.engine.ReadMulti(s.NormalizeMulti(keys))
 }
 
 func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
@@ -76,7 +76,7 @@ func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, 
 }
 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
-	ks := s.normalizeMulti(keys)
+	ks := s.NormalizeMulti(keys)
 	mb := make(map[string][]byte, len(ks))
 	mx := &sync.Mutex{}
 
@@ -107,15 +107,15 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 	return mb, nil
 }
 
-func (s *Engine) normalize(key string) string {
+func (s *Engine) Normalize(key string) string {
 	return Normalize(key, s.Prefix)
 }
 
-func (s *Engine) normalizeMulti(keys []string) []string {
+func (s *Engine) NormalizeMulti(keys []string) []string {
 	ks := make([]string, len(keys))
 
 	for i := range keys {
-		ks[i] = s.normalize(keys[i])
+		ks[i] = s.Normalize(keys[i])
 	}
 
 	return ks
