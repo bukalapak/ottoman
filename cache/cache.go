@@ -18,6 +18,7 @@ type Reader interface {
 // Fetcher is the interface for getting cache key from cache engine as well as to remote backend
 type Fetcher interface {
 	Fetch(key string, r *http.Request) ([]byte, error)
+	FetchRequest(r *http.Request) ([]byte, error)
 	FetchMap(key string, r *http.Request) (map[string]interface{}, error)
 	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
 }

@@ -68,7 +68,7 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	return s.fetch(req)
+	return s.FetchRequest(req)
 }
 
 func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, error) {
@@ -135,7 +135,7 @@ func (s *Engine) normalize(key string) string {
 	return Normalize(key, s.Prefix)
 }
 
-func (s *Engine) fetch(r *http.Request) ([]byte, error) {
+func (s *Engine) FetchRequest(r *http.Request) ([]byte, error) {
 	c := s.httpClient()
 
 	resp, err := c.Do(r)
