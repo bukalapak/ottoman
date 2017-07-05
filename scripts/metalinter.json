@@ -8,6 +8,7 @@
     "gas",
     "goconst",
     "gocyclo",
+    "gofmt",
     "golint",
     "gosimple",
     "interfacer",
