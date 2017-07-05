@@ -11,16 +11,16 @@ import (
 
 func TestHeader(t *testing.T) {
 	data := map[string]header.ContentType{
-		"*/*":                                header.ContentType{MediaType: "*/*", Quality: 1.0, Parameters: map[string]string{}},
-		"*/*; q=0.1":                         header.ContentType{MediaType: "*/*", Quality: 0.1, Parameters: map[string]string{"q": "0.1"}},
-		"text/plain":                         header.ContentType{MediaType: "text/plain", Quality: 1.0, Parameters: map[string]string{}},
-		"application/json":                   header.ContentType{MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{}},
-		"application/msgpack":                header.ContentType{MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{}},
-		"application/json; charset=utf-8":    header.ContentType{MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{"charset": "utf-8"}},
-		"application/msgpack; charset=utf-8": header.ContentType{MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{"charset": "utf-8"}},
-		"application/vnd.example.v4+json":    header.ContentType{MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
-		"application/vnd.example.v4+msgpack": header.ContentType{MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
-		"application/vnd.example.v4+text":    header.ContentType{MediaType: "text/plain", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
+		"*/*":                                {MediaType: "*/*", Quality: 1.0, Parameters: map[string]string{}},
+		"*/*; q=0.1":                         {MediaType: "*/*", Quality: 0.1, Parameters: map[string]string{"q": "0.1"}},
+		"text/plain":                         {MediaType: "text/plain", Quality: 1.0, Parameters: map[string]string{}},
+		"application/json":                   {MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{}},
+		"application/msgpack":                {MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{}},
+		"application/json; charset=utf-8":    {MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{"charset": "utf-8"}},
+		"application/msgpack; charset=utf-8": {MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{"charset": "utf-8"}},
+		"application/vnd.example.v4+json":    {MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
+		"application/vnd.example.v4+msgpack": {MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
+		"application/vnd.example.v4+text":    {MediaType: "text/plain", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
 	}
 
 	for s, x := range data {
