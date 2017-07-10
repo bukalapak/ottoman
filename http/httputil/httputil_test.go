@@ -32,28 +32,6 @@ func TestEncodeMsgPack(t *testing.T) {
 	assert.Equal(t, b, v)
 }
 
-func TestMsgPackFromJSON(t *testing.T) {
-	for s, b := range data {
-		v, err := httputil.MsgPackFromJSON([]byte(s))
-		assert.Nil(t, err)
-		assert.Equal(t, b, v)
-	}
-
-	_, err := httputil.MsgPackFromJSON([]byte(`x`))
-	assert.NotNil(t, err)
-}
-
-func TestMsgPackToJSON(t *testing.T) {
-	for s, b := range data {
-		v, err := httputil.MsgPackToJSON(b)
-		assert.Nil(t, err)
-		assert.Equal(t, s, strings.TrimSpace(string(v)))
-	}
-
-	_, err := httputil.MsgPackToJSON([]byte{0x0})
-	assert.NotNil(t, err)
-}
-
 func TestDecodeFromHeader(t *testing.T) {
 	for s, b := range data {
 		if s == `{}` {
