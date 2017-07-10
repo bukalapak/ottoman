@@ -34,5 +34,5 @@ jobs:
       - run: go get -u gopkg.in/alecthomas/gometalinter.v1
       - run: make check && make coverage
       - run: make redis-cluster-stop
-      - run: bash <(curl -s https://codecov.io/bash) -t 13ff258b-f057-4ddf-af7d-d5aa26798fdc
+      - run: bash <(curl -s https://codecov.io/bash)
 
