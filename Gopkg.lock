@@ -8,6 +8,18 @@
   revision = "1952afaa557dc08e8e0d89eafab110fb501c1a2b"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/bukalapak/envx"
+  packages = ["."]
+  revision = "b5e10e6130433d65a5f1401d3a7eb8aa930ec224"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/bukalapak/httpx"
+  packages = ["."]
+  revision = "1d36fce35905b754cd50546a05729102786bef46"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -44,22 +56,10 @@
   version = "v1.1.4"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/subosito/envx"
-  packages = ["."]
-  revision = "b5e10e6130433d65a5f1401d3a7eb8aa930ec224"
-
-[[projects]]
   name = "github.com/subosito/gotenv"
   packages = ["."]
   revision = "009e1f9581dc712aba5682a279dee155ca3eeded"
   version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/subosito/httpx"
-  packages = ["."]
-  revision = "1d36fce35905b754cd50546a05729102786bef46"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -112,6 +112,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f4061246052a07e0128f1c3a37538b6d25e4dee70f21b13285d3edbe8a604743"
+  inputs-digest = "9faa4be864b745f430adbf1cd9bc247e85e840eda0af25ec202a5a058da7bd28"
   solver-name = "gps-cdcl"
   solver-version = 1

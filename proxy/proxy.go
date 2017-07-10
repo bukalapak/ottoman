@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/subosito/httpx"
+	"github.com/bukalapak/httpx"
 )
 
 type Transformer interface {

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/subosito/httpx"
+	"github.com/bukalapak/httpx"
 )
 
 var (

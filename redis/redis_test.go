@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bukalapak/envx"
 	"github.com/bukalapak/ottoman/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/subosito/envx"
 	"github.com/subosito/gotenv"
 	redisc "gopkg.in/redis.v3"
 )

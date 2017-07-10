@@ -23,7 +23,7 @@
   branch = "master"
 
 [[constraint]]
-  name = "github.com/subosito/envx"
+  name = "github.com/bukalapak/envx"
   branch = "master"
 
 [[constraint]]
@@ -35,7 +35,7 @@
   version = "^v3.6.4"
 
 [[constraint]]
-  name = "github.com/subosito/httpx"
+  name = "github.com/bukalapak/httpx"
   branch = "master"
 
 [[constraint]]
