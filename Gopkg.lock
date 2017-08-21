@@ -38,16 +38,16 @@
   revision = "fec3b39b059c0f88fa6b20f5ed012b1aa203a8b4"
 
 [[projects]]
-  name = "github.com/oklog/ulid"
-  packages = ["."]
-  revision = "d311cb43c92434ec4072dfbbda3400741d0a6337"
-  version = "v0.3.0"
-
-[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/stretchr/testify"
@@ -112,6 +112,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9faa4be864b745f430adbf1cd9bc247e85e840eda0af25ec202a5a058da7bd28"
+  inputs-digest = "5f966deba093a906568619643bf1c756c3104401b99ae9d35c00777a3bd3bc50"
   solver-name = "gps-cdcl"
   solver-version = 1
