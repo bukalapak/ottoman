@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/bukalapak/ottoman/middleware"
-	"github.com/oklog/ulid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,7 +26,7 @@ func (suite *RequestIDSuite) TestRequestID() {
 		id := middleware.RequestIDFromContext(r.Context())
 		assert.NotEqual(suite.T(), "", id)
 
-		uid, err := ulid.Parse(id)
+		uid, err := uuid.FromString(id)
 		assert.Nil(suite.T(), err)
 		assert.Equal(suite.T(), uid.String(), id)
 

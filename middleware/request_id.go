@@ -2,12 +2,10 @@ package middleware
 
 import (
 	"context"
-	"math/rand"
 	"net/http"
 	"regexp"
-	"time"
 
-	"github.com/oklog/ulid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -37,11 +35,7 @@ func reqID(r *http.Request) string {
 }
 
 func genID() string {
-	x := time.Now()
-	n := rand.New(rand.NewSource(x.UnixNano()))
-	u := ulid.MustNew(ulid.Timestamp(x), n)
-
-	return u.String()
+	return uuid.NewV4().String()
 }
 
 func cleanID(s string) string {
