@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/bukalapak/httpx"
   packages = ["."]
-  revision = "1d36fce35905b754cd50546a05729102786bef46"
+  revision = "741f68f05e6e4a775fcb74867a90ba203c1aabaa"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
