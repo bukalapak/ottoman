@@ -3,9 +3,8 @@ package proxy
 import (
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
-
-	"github.com/bukalapak/httpx"
 )
 
 type Transformer interface {
@@ -40,7 +39,7 @@ func (p *Proxy) Target() *url.URL {
 }
 
 func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {
-	proxy := &httpx.ReverseProxy{
+	proxy := &httputil.ReverseProxy{
 		Director:       n.Director(p.target),
 		Transport:      n,
 		ModifyResponse: n.ModifyResponse,
