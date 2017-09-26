@@ -79,7 +79,7 @@ func logConfig() zap.Config {
 		},
 		Encoding:         "json",
 		EncoderConfig:    n,
-		OutputPaths:      []string{"stderr"},
+		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
 	}
 }
