@@ -11,7 +11,7 @@ jobs:
       - run: go version
       - cache-restore:
           key: vendor-{{ checksum "Gopkg.lock" }}
-      - run: go get -u github.com/golang/dep/cmd/dep
+      - run: make dep
       - run: dep ensure -v
       - cache-save:
           key: vendor-{{ checksum "Gopkg.lock" }}
@@ -31,7 +31,6 @@ jobs:
           key: redis-cluster-{{ checksum "scripts/redis-cluster.sh" }}
           paths:
             - redis-cluster
-      - run: go get -u gopkg.in/alecthomas/gometalinter.v1
       - run: make check && make coverage
       - run: make redis-cluster-stop
       - run: bash <(curl -s https://codecov.io/bash)
