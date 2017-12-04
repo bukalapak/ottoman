@@ -1,12 +1,14 @@
 package proxy_test
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bukalapak/ottoman/proxy"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +22,18 @@ type ProxySuite struct {
 
 func (suite *ProxySuite) SetupSuite() {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/stream" {
+			if flusher, ok := w.(http.Flusher); ok {
+				for i := 1; i <= 10; i++ {
+					fmt.Fprintf(w, "chunk #%d\n", i)
+					flusher.Flush()
+					time.Sleep(10 * time.Millisecond)
+				}
+
+				return
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, `{"foo":"bar"}`)
@@ -70,6 +84,23 @@ func (suite *ProxySuite) TestProxy() {
 	assert.Equal(suite.T(), "application/json", rec.Header().Get("Content-Type"))
 	assert.Equal(suite.T(), `{"foo":"bar"}`, strings.TrimSpace(rec.Body.String()))
 	assert.Equal(suite.T(), "1", rec.Header().Get("X-Modified"))
+}
+
+func (suite *ProxySuite) TestProxy_chunked() {
+	req, _ := http.NewRequest("GET", "/stream", nil)
+	rec := httptest.NewRecorder()
+
+	x := proxy.NewProxy(suite.Targeter())
+	x.FlushInterval = time.Millisecond
+	x.Forward(rec, req, Transform{})
+
+	assert.Equal(suite.T(), suite.backend.URL, x.Target().String())
+	assert.Equal(suite.T(), http.StatusOK, rec.Code)
+	assert.True(suite.T(), rec.Flushed)
+
+	for i := 1; i <= 10; i++ {
+		assert.Contains(suite.T(), rec.Body.String(), fmt.Sprintf("chunk #%d", i))
+	}
 }
 
 func TestProxySuite(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 )
 
 type Transformer interface {
@@ -26,8 +27,9 @@ type Forwarder interface {
 }
 
 type Proxy struct {
-	target Targeter
-	Logger *log.Logger
+	target        Targeter
+	FlushInterval time.Duration
+	Logger        *log.Logger
 }
 
 func NewProxy(target Targeter) *Proxy {
@@ -43,6 +45,7 @@ func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {
 		Director:       n.Director(p.target),
 		Transport:      n,
 		ModifyResponse: n.ModifyResponse,
+		FlushInterval:  p.FlushInterval,
 		ErrorLog:       p.Logger,
 	}
 
