@@ -74,7 +74,7 @@ func TestDumpBody(t *testing.T) {
 	d2.ReadFrom(c2)
 
 	assert.Equal(t, qs, d2.String())
-	assert.NotEqual(t, fmt.Sprintf("%p", c1), fmt.Sprintf("%p", c2))
+	assert.NotEqual(t, fmt.Sprintf("%v", c1), fmt.Sprintf("%v", c2))
 }
 
 type BadReader struct{}
