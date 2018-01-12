@@ -26,5 +26,6 @@
     "Errors unhandled"
   ],
   "Skip": [
+    "x/http"
   ]
 }
