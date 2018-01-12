@@ -16,6 +16,8 @@ redis-cluster-start:
 	./scripts/redis-cluster.sh start
 redis-cluster-stop:
 	./scripts/redis-cluster.sh stop
+update-x-http:
+	./scripts/x-http-updater.sh
 test:
 	go test -race -v $$(go list ./... | grep -Ev "vendor|qtest")
 coverage:
