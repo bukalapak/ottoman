@@ -1,5 +1,7 @@
 codecov:
   bot: bukalapakbot
+ignore:
+  - "x/http"
 coverage:
   status:
     patch:
