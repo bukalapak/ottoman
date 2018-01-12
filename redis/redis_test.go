@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bukalapak/envx"
 	"github.com/bukalapak/ottoman/redis"
+	envx "github.com/bukalapak/ottoman/x/env"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/subosito/gotenv"
