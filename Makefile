@@ -4,14 +4,14 @@ dep: dep-tool dep-metalinter
 dep-tool:
 	@go get github.com/golang/dep/cmd/dep
 dep-metalinter:
-	@go get github.com/alecthomas/gometalinter
-	@gometalinter --install > /dev/null
+	@go get -u gopkg.in/alecthomas/gometalinter.v2
+	@gometalinter.v2 --install > /dev/null
 check: check-metalinter
 check-metalinter: dep-metalinter
-	@gometalinter --fast --config=metalinter.json ./...
+	@gometalinter.v2 --fast --config=metalinter.json ./...
 check-all: check-all-metalinter
 check-all-metalinter: dep-metalinter
-	@gometalinter --config=metalinter.json ./...
+	@gometalinter.v2 --config=metalinter.json ./...
 redis-cluster-start:
 	./scripts/redis-cluster.sh start
 redis-cluster-stop:
