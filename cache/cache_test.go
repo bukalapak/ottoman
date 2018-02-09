@@ -136,6 +136,10 @@ func (m *Match) ResolveRequest(r *http.Request) (*http.Request, error) {
 	return req, nil
 }
 
+func (m *Match) ResolveLatest(key string) string {
+	return key
+}
+
 type FailureTransport struct{}
 
 func (t *FailureTransport) RoundTrip(r *http.Request) (*http.Response, error) {

@@ -23,10 +23,11 @@ type Fetcher interface {
 	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
 }
 
-// Resolver is the interface for resolving cache key to http request
+// Resolver is the interface for resolving cache key to http request and cache router
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
 	ResolveRequest(r *http.Request) (*http.Request, error)
+	ResolveLatest(key string) string
 }
 
 // Normalizer is the interface for normalizing cache key

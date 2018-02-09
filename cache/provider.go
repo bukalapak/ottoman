@@ -108,7 +108,7 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 }
 
 func (s *Engine) Normalize(key string) string {
-	return Normalize(key, s.Prefix)
+	return Normalize(s.Resolver.ResolveLatest(key), s.Prefix)
 }
 
 func (s *Engine) NormalizeMulti(keys []string) []string {

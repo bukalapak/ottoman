@@ -18,6 +18,7 @@ func TestProvider_Name(t *testing.T) {
 func TestProvider_Read(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
 
 	b, err := c.Read("foo")
 	assert.Nil(t, err)
@@ -28,6 +29,7 @@ func TestProvider_Read_namespace(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Prefix = "api"
+	c.(*cache.Engine).Resolver = NewResolver()
 
 	b, err := c.Read("foo")
 	assert.Nil(t, err)
@@ -41,6 +43,7 @@ func TestProvider_Read_namespace(t *testing.T) {
 func TestProvider_ReadMap(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
 
 	m, err := c.ReadMap("foo")
 	assert.Nil(t, err)
@@ -50,6 +53,7 @@ func TestProvider_ReadMap(t *testing.T) {
 func TestProvider_ReadMulti(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
 
 	keys := []string{
 		"fox",
