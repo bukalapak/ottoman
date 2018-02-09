@@ -142,10 +142,6 @@ func (s *Engine) FetchRequest(r *http.Request) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (s *Engine) LatestKey(key string, r *http.Request) string {
-	return s.Resolver.ResolveLatest(key, r)
-}
-
 func (s *Engine) httpClient() *http.Client {
 	return &http.Client{
 		Transport: s.httpTransport(),

@@ -239,16 +239,3 @@ func TestProvider_Namespace(t *testing.T) {
 	c.(*cache.Engine).Prefix = "api"
 	assert.Equal(t, "api", c.Namespace())
 }
-
-func TestProvider_LatestKey(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	assert.Equal(t, "foo:new", c.LatestKey("foo", q))
-	assert.Equal(t, "bar", c.LatestKey("bar", q))
-}
