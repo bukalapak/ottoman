@@ -27,7 +27,7 @@ type Fetcher interface {
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
 	ResolveRequest(r *http.Request) (*http.Request, error)
-	ResolveLatest(key string) string
+	ResolveLatest(key string, r *http.Request) string
 }
 
 // Normalizer is the interface for normalizing cache key
@@ -42,6 +42,7 @@ type Provider interface {
 	Fetcher
 	Normalizer
 	Namespace() string
+	LatestKey(key string, r *http.Request) string
 }
 
 // Normalize returns valid cache key. It can automatically detect prefixed/non-prefixed cache key and format the key properly.

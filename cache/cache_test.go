@@ -136,7 +136,11 @@ func (m *Match) ResolveRequest(r *http.Request) (*http.Request, error) {
 	return req, nil
 }
 
-func (m *Match) ResolveLatest(key string) string {
+func (m *Match) ResolveLatest(key string, r *http.Request) string {
+	if key == "foo" {
+		return "foo:new"
+	}
+
 	return key
 }
 
