@@ -21,8 +21,8 @@ redis-cluster-stop:
 update-x-http:
 	./scripts/x-http-updater.sh
 test:
-	go test -race -v $$(go list ./... | grep -Ev "vendor|qtest")
+	go test -race -v $$(go list ./... | grep -Ev "qtest")
 coverage:
-	@./scripts/coverage.sh coverage.out
+	go test -race -v -cover -coverprofile=coverage.out $$(go list ./... | grep -Ev "qtest")
 cover:
 	go tool cover -html=coverage.out

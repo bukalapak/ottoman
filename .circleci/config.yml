@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/bukalapak/ottoman
     docker:
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.10-stretch
       - image: redis:3.2-alpine
       - image: memcached:1.4-alpine
     steps:
@@ -12,7 +12,7 @@ jobs:
       - cache-restore:
           key: vendor-{{ checksum "Gopkg.lock" }}
       - run: make dep
-      - run: dep ensure -v
+      - run: make dep-ensure
       - cache-save:
           key: vendor-{{ checksum "Gopkg.lock" }}
           paths:
