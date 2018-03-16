@@ -14,11 +14,15 @@ var (
 
 func RequestID(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), contextKeyRequestID, reqID(r))
+		ctx := NewRequestIDContext(r.Context(), reqID(r))
 		h.ServeHTTP(w, r.WithContext(ctx))
 	}
 
 	return http.HandlerFunc(fn)
+}
+
+func NewRequestIDContext(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, contextKeyRequestID, id)
 }
 
 func RequestIDFromContext(ctx context.Context) string {
