@@ -27,7 +27,6 @@ type Fetcher interface {
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
 	ResolveRequest(r *http.Request) (*http.Request, error)
-	ResolveLatest(key string, r *http.Request) string
 }
 
 // Normalizer is the interface for normalizing cache key
