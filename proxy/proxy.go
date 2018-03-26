@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -28,6 +29,7 @@ type Forwarder interface {
 
 type Proxy struct {
 	target        Targeter
+	BlockedPaths  map[string]bool
 	FlushInterval time.Duration
 	Logger        *log.Logger
 }
@@ -41,6 +43,11 @@ func (p *Proxy) Target() *url.URL {
 }
 
 func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {
+	if p.isPathBlocked(r) {
+		p.writeBlockedResponse(w)
+		return
+	}
+
 	proxy := &httputil.ReverseProxy{
 		Director:       n.Director(p.target),
 		Transport:      n,
@@ -50,4 +57,13 @@ func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {
 	}
 
 	proxy.ServeHTTP(w, r)
+}
+
+func (p *Proxy) isPathBlocked(r *http.Request) bool {
+	return p.BlockedPaths[r.URL.Path]
+}
+
+func (p *Proxy) writeBlockedResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusServiceUnavailable)
+	fmt.Fprintf(w, "")
 }

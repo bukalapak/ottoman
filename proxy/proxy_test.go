@@ -103,6 +103,18 @@ func (suite *ProxySuite) TestProxy_chunked() {
 	}
 }
 
+func (suite *ProxySuite) TestProxy_blockedPath() {
+	req, _ := http.NewRequest("GET", "/blocked-path", nil)
+	rec := httptest.NewRecorder()
+
+	x := proxy.NewProxy(suite.Targeter())
+	x.FlushInterval = time.Millisecond
+	x.BlockedPaths = map[string]bool{"/blocked-path": true}
+	x.Forward(rec, req, Transform{})
+
+	assert.Equal(suite.T(), http.StatusServiceUnavailable, rec.Code)
+}
+
 func TestProxySuite(t *testing.T) {
 	suite.Run(t, new(ProxySuite))
 }
