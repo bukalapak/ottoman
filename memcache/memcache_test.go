@@ -10,6 +10,7 @@ import (
 
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
 	"github.com/bukalapak/ottoman/memcache"
+	"github.com/bukalapak/ottoman/qtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/subosito/gotenv"
@@ -19,6 +20,8 @@ type MemcacheSuite struct {
 	suite.Suite
 	client *gomemcache.Client
 	c      *memcache.Memcache
+	m      *qtest.Metric
+	cm     *memcache.Memcache
 }
 
 func (suite *MemcacheSuite) SetupSuite() {
@@ -42,6 +45,12 @@ func (suite *MemcacheSuite) SetupTest() {
 func (suite *MemcacheSuite) NewClient(addr string, option memcache.Option) {
 	suite.client = gomemcache.New(addr)
 	suite.c = memcache.New([]string{addr}, option)
+	suite.m = qtest.NewMetric()
+
+	opts := option
+	opts.Metric = suite.m
+
+	suite.cm = memcache.New([]string{addr}, opts)
 }
 
 func (suite *MemcacheSuite) TearDownTest() {
@@ -63,6 +72,36 @@ func (suite *MemcacheSuite) TestRead() {
 	b, err := suite.c.Read("foo")
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
+}
+
+func (suite *MemcacheSuite) TestRead_metric() {
+	suite.NewClient(suite.Addr(), memcache.Option{
+		Compress: false,
+	})
+
+	suite.loadFixtures(false)
+
+	b, err := suite.cm.Read("foo")
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
+
+	mc, err := suite.m.Gather("cache_latency_seconds")
+	assert.Nil(suite.T(), err)
+	assert.Len(suite.T(), mc, 1)
+
+	labels := map[string]string{
+		"name":   "Memcached",
+		"action": "Get",
+	}
+
+	for _, m := range mc {
+		assert.Equal(suite.T(), uint64(1), m.GetHistogram().GetSampleCount())
+		assert.NotZero(suite.T(), m.GetHistogram().GetSampleSum())
+
+		for _, label := range m.GetLabel() {
+			assert.Equal(suite.T(), labels[label.GetName()], label.GetValue())
+		}
+	}
 }
 
 func (suite *MemcacheSuite) TestRead_miss() {
@@ -134,6 +173,38 @@ func (suite *MemcacheSuite) TestReadMulti() {
 			assert.Equal(suite.T(), []byte(`{"foo":"bar"}`), m[key])
 		case "fox":
 			assert.Equal(suite.T(), []byte(`{"fox":"baz"}`), m[key])
+		}
+	}
+}
+
+func (suite *MemcacheSuite) TestReadMulti_metric() {
+	suite.loadFixtures(true)
+
+	keys := []string{
+		"foo",
+		"boo",
+		"fox",
+	}
+
+	m, err := suite.cm.ReadMulti(keys)
+	assert.Nil(suite.T(), err)
+	assert.Len(suite.T(), m, 2)
+
+	mc, err := suite.m.Gather("cache_latency_seconds")
+	assert.Nil(suite.T(), err)
+	assert.Len(suite.T(), mc, 1)
+
+	labels := map[string]string{
+		"name":   "Memcached",
+		"action": "GetMulti",
+	}
+
+	for _, m := range mc {
+		assert.Equal(suite.T(), uint64(1), m.GetHistogram().GetSampleCount())
+		assert.NotZero(suite.T(), m.GetHistogram().GetSampleSum())
+
+		for _, label := range m.GetLabel() {
+			assert.Equal(suite.T(), labels[label.GetName()], label.GetValue())
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/bukalapak/ottoman/cache"
 	"github.com/bukalapak/ottoman/encoding/json"
 )
 
@@ -20,29 +21,42 @@ const (
 type Option struct {
 	Compress bool
 	Timeout  time.Duration
+	Metric   cache.MetricTracer
 }
 
 // Memcache is a memcache client. It is safe for unlocked use by multiple concurrent goroutines.
 type Memcache struct {
 	client *memcache.Client
+	metric cache.MetricTracer
 	option Option
 }
 
 // New returns a memcache client using the provided servers and options.
 func New(ss []string, option Option) *Memcache {
+	var m cache.MetricTracer
+
+	if option.Metric != nil {
+		m = option.Metric
+	} else {
+		m = &noopTracer{}
+	}
+
 	c := memcache.New(ss...)
 	c.Timeout = netTimeout(option.Timeout)
 
-	return &Memcache{client: c, option: option}
+	return &Memcache{client: c, metric: m, option: option}
 }
 
 // Read reads the item for given key.
 // It's automatically decode item.Value depending on the client option.
 func (c *Memcache) Read(key string) ([]byte, error) {
+	now := time.Now()
 	item, err := c.client.Get(key)
 	if err != nil {
 		return nil, err
 	}
+
+	c.metric.CacheLatency(c.Name(), "Get", time.Since(now))
 
 	return c.readValue(item.Value)
 }
@@ -67,10 +81,13 @@ func (c *Memcache) ReadMap(key string) (map[string]interface{}, error) {
 // ReadMulti is a batch version of Read.
 // The returned map have exact length as provided keys. For cache miss, an empty byte will be returned.
 func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
+	now := time.Now()
 	m, err := c.client.GetMulti(keys)
 	if err != nil {
 		return map[string][]byte{}, err
 	}
+
+	c.metric.CacheLatency(c.Name(), "GetMulti", time.Since(now))
 
 	z := make(map[string][]byte, len(m))
 
@@ -113,3 +130,7 @@ func netTimeout(timeout time.Duration) time.Duration {
 
 	return defaultTimeout
 }
+
+type noopTracer struct{}
+
+func (c *noopTracer) CacheLatency(name, action string, n time.Duration) {}
