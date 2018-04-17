@@ -61,7 +61,3 @@ func Normalize(key, prefix string) string {
 
 	return key
 }
-
-type NoopTracer struct{}
-
-func (c *NoopTracer) CacheLatency(name, action string, n time.Duration) {}

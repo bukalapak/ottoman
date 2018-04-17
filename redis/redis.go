@@ -41,7 +41,7 @@ func New(opts *Option) *Redis {
 	if opts.Metric != nil {
 		m = opts.Metric
 	} else {
-		m = &cache.NoopTracer{}
+		m = &noopTracer{}
 	}
 
 	if len(opts.Addrs) == 1 {
@@ -140,3 +140,7 @@ func (c *Redis) Expire(key string, expiration time.Duration) (bool, error) {
 func (c *Redis) Name() string {
 	return c.name
 }
+
+type noopTracer struct{}
+
+func (c *noopTracer) CacheLatency(name, action string, n time.Duration) {}
