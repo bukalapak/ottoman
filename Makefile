@@ -14,10 +14,6 @@ check-metalinter: dep-metalinter
 check-all: check-all-metalinter
 check-all-metalinter: dep-metalinter
 	@gometalinter.v2 --config=metalinter.json ./...
-redis-cluster-start:
-	./scripts/redis-cluster.sh start
-redis-cluster-stop:
-	./scripts/redis-cluster.sh stop
 update-x-http:
 	./scripts/x-http-updater.sh
 test:
