@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Reader is the interface for cache backend implementation.
@@ -43,6 +44,11 @@ type Provider interface {
 	Namespace() string
 }
 
+// MetricTracer traces metrics within internal provider action
+type MetricTracer interface {
+	CacheLatency(name, action string, n time.Duration)
+}
+
 // Normalize returns valid cache key. It can automatically detect prefixed/non-prefixed cache key and format the key properly.
 func Normalize(key, prefix string) string {
 	if n := strings.SplitN(key, ":", 2); len(n) == 2 {
@@ -55,3 +61,7 @@ func Normalize(key, prefix string) string {
 
 	return key
 }
+
+type NoopTracer struct{}
+
+func (c *NoopTracer) CacheLatency(name, action string, n time.Duration) {}
