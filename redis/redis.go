@@ -4,6 +4,7 @@ package redis
 import (
 	"time"
 
+	"github.com/bukalapak/ottoman/cache"
 	"github.com/bukalapak/ottoman/encoding/json"
 	redisc "gopkg.in/redis.v3"
 )
@@ -18,6 +19,7 @@ type Provider interface {
 type Option struct {
 	Addrs    []string
 	Password string
+	Metric   cache.MetricTracer
 
 	// A database to be selected after connecting to server.
 	// Redis Cluster ignores this value.
@@ -29,13 +31,23 @@ type Option struct {
 type Redis struct {
 	client Provider
 	name   string
+	metric cache.MetricTracer
 }
 
 // New returns a client to the redis server specified by Option.
 func New(opts *Option) *Redis {
+	var m cache.MetricTracer
+
+	if opts.Metric != nil {
+		m = opts.Metric
+	} else {
+		m = &cache.NoopTracer{}
+	}
+
 	if len(opts.Addrs) == 1 {
 		return &Redis{
-			name: "Redis",
+			name:   "Redis",
+			metric: m,
 			client: redisc.NewClient(&redisc.Options{
 				Addr:     opts.Addrs[0],
 				DB:       opts.DB,
@@ -45,7 +57,8 @@ func New(opts *Option) *Redis {
 	}
 
 	return &Redis{
-		name: "Redis Cluster",
+		name:   "Redis Cluster",
+		metric: m,
 		client: redisc.NewClusterClient(&redisc.ClusterOptions{
 			Addrs:    opts.Addrs,
 			Password: opts.Password,
@@ -55,10 +68,13 @@ func New(opts *Option) *Redis {
 
 // Read reads the item for given key.
 func (c *Redis) Read(key string) ([]byte, error) {
+	now := time.Now()
 	cmd := c.client.Get(key)
 	if cmd.Err() != nil {
 		return nil, cmd.Err()
 	}
+
+	c.metric.CacheLatency(c.Name(), "Get", time.Since(now))
 
 	return cmd.Bytes()
 }
@@ -82,12 +98,15 @@ func (c *Redis) ReadMap(key string) (map[string]interface{}, error) {
 // ReadMulti is a batch version of Read.
 // The returned map have exact length as provided keys. For cache miss, an empty byte will be returned.
 func (c *Redis) ReadMulti(keys []string) (map[string][]byte, error) {
+	now := time.Now()
 	cmd := c.client.MGet(keys...)
 	z := make(map[string][]byte)
 
 	if cmd.Err() != nil {
 		return nil, cmd.Err()
 	}
+
+	c.metric.CacheLatency(c.Name(), "MGet", time.Since(now))
 
 	for i, k := range keys {
 		v, ok := cmd.Val()[i].(string)
