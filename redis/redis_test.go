@@ -15,8 +15,11 @@ import (
 	redisc "gopkg.in/redis.v3"
 )
 
-type Provider interface {
-	redis.Provider
+type connector interface {
+	Get(key string) *redisc.StringCmd
+	MGet(keys ...string) *redisc.SliceCmd
+	Incr(key string) *redisc.IntCmd
+	Expire(key string, expiration time.Duration) *redisc.BoolCmd
 	Del(keys ...string) *redisc.IntCmd
 	Set(key string, value interface{}, expiration time.Duration) *redisc.StatusCmd
 	TTL(key string) *redisc.DurationCmd
@@ -24,7 +27,7 @@ type Provider interface {
 
 type CommonSuite struct {
 	suite.Suite
-	client Provider
+	client connector
 	c      *redis.Redis
 	m      *qtest.Metric
 	cm     *redis.Redis

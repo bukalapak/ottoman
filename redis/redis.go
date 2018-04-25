@@ -8,13 +8,7 @@ import (
 	redisc "gopkg.in/redis.v3"
 )
 
-type Provider interface {
-	Get(key string) *redisc.StringCmd
-	MGet(keys ...string) *redisc.SliceCmd
-	Incr(key string) *redisc.IntCmd
-	Expire(key string, expiration time.Duration) *redisc.BoolCmd
-}
-
+// Option represents configurable configuration for redis client.
 type Option struct {
 	Addrs    []string
 	Password string
@@ -25,10 +19,17 @@ type Option struct {
 	DB int64
 }
 
+type connector interface {
+	Get(key string) *redisc.StringCmd
+	MGet(keys ...string) *redisc.SliceCmd
+	Incr(key string) *redisc.IntCmd
+	Expire(key string, expiration time.Duration) *redisc.BoolCmd
+}
+
 // Redis is a Redis client representing a pool of zero or more underlying connections.
 // It's saafe for concurrent use by multiple goroutines.
 type Redis struct {
-	client Provider
+	client connector
 	name   string
 	metric cache.MetricTracer
 }
