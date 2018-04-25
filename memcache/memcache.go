@@ -4,13 +4,11 @@ package memcache
 import (
 	"bytes"
 	"compress/zlib"
-	"io"
 	"io/ioutil"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/bukalapak/ottoman/cache"
-	"github.com/bukalapak/ottoman/encoding/json"
 )
 
 const (
@@ -61,23 +59,6 @@ func (c *Memcache) Read(key string) ([]byte, error) {
 	return c.readValue(item.Value)
 }
 
-// ReadMap reads the item for given key as map[string]interface{}
-func (c *Memcache) ReadMap(key string) (map[string]interface{}, error) {
-	b, err := c.Read(key)
-	if err != nil {
-		return nil, err
-	}
-
-	m := make(map[string]interface{})
-
-	err = c.decode(bytes.NewReader(b), &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
-}
-
 // ReadMulti is a batch version of Read.
 // The returned map have exact length as provided keys. For cache miss, an empty byte will be returned.
 func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
@@ -102,10 +83,6 @@ func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
 // Name returns cache storage identifier.
 func (c *Memcache) Name() string {
 	return "Memcached"
-}
-
-func (c *Memcache) decode(r io.Reader, v interface{}) error {
-	return json.NewDecoder(r).Decode(v)
 }
 
 func (c *Memcache) readValue(data []byte) (n []byte, err error) {

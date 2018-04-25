@@ -1,7 +1,6 @@
 package cache_test
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -57,18 +56,6 @@ func (m *Sample) Read(key string) ([]byte, error) {
 	return nil, errors.New("unknown cache")
 }
 
-func (m *Sample) ReadMap(key string) (map[string]interface{}, error) {
-	b, err := m.Read(key)
-	if err != nil {
-		return nil, err
-	}
-
-	z := make(map[string]interface{})
-	err = json.Unmarshal(b, &z)
-
-	return z, err
-}
-
 func (m *Sample) ReadMulti(keys []string) (map[string][]byte, error) {
 	z := make(map[string][]byte, len(keys))
 
@@ -84,10 +71,6 @@ type XSample struct{}
 
 func (m *XSample) Read(key string) ([]byte, error) {
 	return nil, errors.New("example error from Read")
-}
-
-func (m *XSample) ReadMap(key string) (map[string]interface{}, error) {
-	return nil, errors.New("example error from ReadMap")
 }
 
 func (m *XSample) ReadMulti(keys []string) (map[string][]byte, error) {

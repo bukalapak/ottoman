@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bukalapak/ottoman/encoding/json"
 	"go.uber.org/zap"
 )
 
@@ -40,12 +39,6 @@ func (s *Engine) Read(key string) ([]byte, error) {
 	return s.engine.Read(s.Normalize(key))
 }
 
-// ReadMap reads cache data as map[string]interface{}.
-// It's also expand any cache identifier with actual cache data.
-func (s *Engine) ReadMap(key string) (map[string]interface{}, error) {
-	return s.engine.ReadMap(s.Normalize(key))
-}
-
 // ReadMulti bulk reads multiple cache keys.
 func (s *Engine) ReadMulti(keys []string) (map[string][]byte, error) {
 	return s.engine.ReadMulti(s.NormalizeMulti(keys))
@@ -58,21 +51,6 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 	}
 
 	return s.FetchRequest(req)
-}
-
-func (s *Engine) FetchMap(key string, r *http.Request) (map[string]interface{}, error) {
-	b, err := s.Fetch(key, r)
-	if err != nil {
-		return nil, err
-	}
-
-	m := make(map[string]interface{})
-
-	if err = json.Unmarshal(b, &m); err != nil {
-		return nil, err
-	}
-
-	return m, nil
 }
 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {

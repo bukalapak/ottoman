@@ -128,28 +128,12 @@ func (suite *MemcacheSuite) TestRead_zlib_uncompressedCache() {
 	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
 }
 
-func (suite *MemcacheSuite) TestReadMap() {
+func (suite *MemcacheSuite) TestRead_unknownCache() {
 	suite.loadFixtures(true)
 
-	m, err := suite.c.ReadMap("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), map[string]interface{}{"foo": "bar"}, m)
-}
-
-func (suite *MemcacheSuite) TestReadMap_invalidCache() {
-	suite.loadFixtures(true)
-
-	m, err := suite.c.ReadMap("baz")
+	b, err := suite.c.Read("boo")
 	assert.NotNil(suite.T(), err)
-	assert.Nil(suite.T(), m)
-}
-
-func (suite *MemcacheSuite) TestReadMap_unknownCache() {
-	suite.loadFixtures(true)
-
-	m, err := suite.c.ReadMap("boo")
-	assert.NotNil(suite.T(), err)
-	assert.Nil(suite.T(), m)
+	assert.Nil(suite.T(), b)
 }
 
 func (suite *MemcacheSuite) TestReadMulti() {

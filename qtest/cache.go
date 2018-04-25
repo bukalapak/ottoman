@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/bukalapak/ottoman/cache"
-	"github.com/bukalapak/ottoman/encoding/json"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 )
@@ -31,18 +30,6 @@ func (q *CacheMap) Read(key string) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("unknown cache key: %s", key)
-}
-
-func (q *CacheMap) ReadMap(key string) (map[string]interface{}, error) {
-	b, err := q.Read(key)
-	if err != nil {
-		return nil, err
-	}
-
-	m := make(map[string]interface{})
-	err = json.Unmarshal(b, &m)
-
-	return m, err
 }
 
 func (q *CacheMap) ReadMulti(keys []string) (map[string][]byte, error) {

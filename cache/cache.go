@@ -12,7 +12,6 @@ import (
 type Reader interface {
 	Name() string
 	Read(key string) ([]byte, error)
-	ReadMap(key string) (map[string]interface{}, error)
 	ReadMulti(keys []string) (map[string][]byte, error)
 }
 
@@ -20,7 +19,6 @@ type Reader interface {
 type Fetcher interface {
 	Fetch(key string, r *http.Request) ([]byte, error)
 	FetchRequest(r *http.Request) ([]byte, error)
-	FetchMap(key string, r *http.Request) (map[string]interface{}, error)
 	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
 }
 

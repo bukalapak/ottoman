@@ -40,16 +40,6 @@ func TestProvider_Read_namespace(t *testing.T) {
 	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
 }
 
-func TestProvider_ReadMap(t *testing.T) {
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	m, err := c.ReadMap("foo")
-	assert.Nil(t, err)
-	assert.Equal(t, map[string]interface{}{"foo": "bar"}, m)
-}
-
 func TestProvider_ReadMulti(t *testing.T) {
 	r := NewReader()
 	c := cache.NewProvider(r)
@@ -125,7 +115,7 @@ func TestProvider_Fetch_timeout(t *testing.T) {
 	assert.Nil(t, b)
 }
 
-func TestProvider_FetchMap(t *testing.T) {
+func TestProvider_Fetch_backendError(t *testing.T) {
 	h := NewRemoteServer()
 	defer h.Close()
 
@@ -134,37 +124,9 @@ func TestProvider_FetchMap(t *testing.T) {
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
 
-	m, err := c.FetchMap("zoo", q)
-	assert.Nil(t, err)
-	assert.Equal(t, map[string]interface{}{"zoo": "zac"}, m)
-}
-
-func TestProvider_FetchMap_invalidJSON(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	m, err := c.FetchMap("zab", q)
-	assert.NotNil(t, err)
-	assert.Nil(t, m)
-}
-
-func TestProvider_FetchMap_backendError(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	m, err := c.FetchMap("bad", q)
-	assert.NotNil(t, err)
-	assert.Nil(t, m)
+	b, err := c.Fetch("bad", q)
+	assert.Contains(t, err.Error(), "invalid http status: 500 Internal Server Error")
+	assert.Nil(t, b)
 }
 
 func TestProvider_FetchMulti(t *testing.T) {

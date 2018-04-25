@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/bukalapak/ottoman/cache"
-	"github.com/bukalapak/ottoman/encoding/json"
 	redisc "gopkg.in/redis.v3"
 )
 
@@ -77,22 +76,6 @@ func (c *Redis) Read(key string) ([]byte, error) {
 	c.metric.CacheLatency(c.Name(), "Get", time.Since(now))
 
 	return cmd.Bytes()
-}
-
-// ReadMap reads the item for given key as map[string]interface{}
-func (c *Redis) ReadMap(key string) (map[string]interface{}, error) {
-	b, err := c.Read(key)
-	if err != nil {
-		return nil, err
-	}
-
-	m := make(map[string]interface{})
-	err = json.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
 }
 
 // ReadMulti is a batch version of Read.
