@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/bukalapak/ottoman/middleware"
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/kevinburke/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

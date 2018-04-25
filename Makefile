@@ -1,10 +1,5 @@
 SHELL := /bin/bash
 
-dep: dep-tool dep-metalinter
-dep-tool:
-	@go get github.com/golang/dep/cmd/dep
-dep-ensure: dep-tool
-	dep ensure -v
 dep-metalinter:
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
 	@gometalinter.v2 --install > /dev/null
@@ -17,8 +12,8 @@ check-all-metalinter: dep-metalinter
 update-x-http:
 	./scripts/x-http-updater.sh
 test:
-	go test -race -v $$(go list ./... | grep -Ev "qtest")
+	go test -race -v $$(go list ./...)
 coverage:
-	go test -race -v -cover -coverprofile=coverage.out $$(go list ./... | grep -Ev "qtest")
+	go test -race -v -cover -coverprofile=coverage.out $$(go list ./...)
 cover:
 	go tool cover -html=coverage.out

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/kevinburke/go.uuid"
 )
 
 var (

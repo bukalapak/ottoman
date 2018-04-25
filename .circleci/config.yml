@@ -10,14 +10,7 @@ jobs:
     steps:
       - checkout
       - run: go version
-      - cache-restore:
-          key: vendor-{{ checksum "Gopkg.lock" }}
-      - run: make dep
-      - run: make dep-ensure
-      - cache-save:
-          key: vendor-{{ checksum "Gopkg.lock" }}
-          paths:
-            - vendor
+      - run: go get -t ./...
       - run: make check && make coverage
       - run: bash <(curl -s https://codecov.io/bash)
 
