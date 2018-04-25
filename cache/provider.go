@@ -50,7 +50,7 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	return s.FetchRequest(req)
+	return s.fetchRequest(req)
 }
 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
@@ -99,7 +99,7 @@ func (s *Engine) NormalizeMulti(keys []string) []string {
 	return ks
 }
 
-func (s *Engine) FetchRequest(r *http.Request) ([]byte, error) {
+func (s *Engine) fetchRequest(r *http.Request) ([]byte, error) {
 	c := s.httpClient()
 
 	resp, err := c.Do(r)
