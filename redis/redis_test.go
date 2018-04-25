@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bukalapak/ottoman/qtest"
 	"github.com/bukalapak/ottoman/redis"
 	envx "github.com/bukalapak/ottoman/x/env"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/subosito/gotenv"
@@ -29,7 +30,7 @@ type CommonSuite struct {
 	suite.Suite
 	client connector
 	c      *redis.Redis
-	m      *qtest.Metric
+	m      *Metric
 	cm     *redis.Redis
 }
 
@@ -195,7 +196,7 @@ func (suite *RedisSuite) SetupTest() {
 		DB:    int64(envx.Int("REDIS_DB")),
 	})
 
-	suite.m = qtest.NewMetric()
+	suite.m = NewMetric()
 	suite.cm = redis.New(&redis.Option{
 		Addrs:  []string{os.Getenv("REDIS_ADDR")},
 		DB:     int64(envx.Int("REDIS_DB")),
@@ -234,7 +235,7 @@ func (suite *RedisClusterSuite) SetupTest() {
 		Addrs: addrs,
 	})
 
-	suite.m = qtest.NewMetric()
+	suite.m = NewMetric()
 	suite.cm = redis.New(&redis.Option{
 		Addrs:  addrs,
 		Metric: suite.m,
@@ -268,4 +269,43 @@ func (suite *RedisClusterSuite) TestReadMulti_CROSSSLOT() {
 
 func TestRedisClusterSuite(t *testing.T) {
 	suite.Run(t, &RedisClusterSuite{new(CommonSuite)})
+}
+
+type Metric struct {
+	cacheLatency *prometheus.HistogramVec
+	registry     *prometheus.Registry
+}
+
+func NewMetric() *Metric {
+	m := &Metric{registry: prometheus.NewRegistry()}
+
+	m.cacheLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cache_latency_seconds",
+		Help: "A histogram of the cache latency in seconds.",
+	}, []string{"name", "action"})
+
+	m.registry.MustRegister(m.cacheLatency)
+
+	return m
+}
+
+func (m *Metric) Registry() *prometheus.Registry {
+	return m.registry
+}
+
+func (m *Metric) Gather(name string) ([]*dto.Metric, error) {
+	gf, err := m.Registry().Gather()
+	if err == nil {
+		for _, g := range gf {
+			if g.GetName() == name {
+				return g.GetMetric(), nil
+			}
+		}
+	}
+
+	return nil, err
+}
+
+func (m *Metric) CacheLatency(name, action string, n time.Duration) {
+	m.cacheLatency.With(prometheus.Labels{"name": name, "action": action}).Observe(n.Seconds())
 }

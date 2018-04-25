@@ -10,7 +10,8 @@ import (
 
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
 	"github.com/bukalapak/ottoman/memcache"
-	"github.com/bukalapak/ottoman/qtest"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/subosito/gotenv"
@@ -20,7 +21,7 @@ type MemcacheSuite struct {
 	suite.Suite
 	client *gomemcache.Client
 	c      *memcache.Memcache
-	m      *qtest.Metric
+	m      *Metric
 	cm     *memcache.Memcache
 }
 
@@ -45,7 +46,7 @@ func (suite *MemcacheSuite) SetupTest() {
 func (suite *MemcacheSuite) NewClient(addr string, option memcache.Option) {
 	suite.client = gomemcache.New(addr)
 	suite.c = memcache.New([]string{addr}, option)
-	suite.m = qtest.NewMetric()
+	suite.m = NewMetric()
 
 	opts := option
 	opts.Metric = suite.m
@@ -247,4 +248,43 @@ func (suite *MemcacheSuite) loadFixtures(compress bool) {
 			panic(err)
 		}
 	}
+}
+
+type Metric struct {
+	cacheLatency *prometheus.HistogramVec
+	registry     *prometheus.Registry
+}
+
+func NewMetric() *Metric {
+	m := &Metric{registry: prometheus.NewRegistry()}
+
+	m.cacheLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cache_latency_seconds",
+		Help: "A histogram of the cache latency in seconds.",
+	}, []string{"name", "action"})
+
+	m.registry.MustRegister(m.cacheLatency)
+
+	return m
+}
+
+func (m *Metric) Registry() *prometheus.Registry {
+	return m.registry
+}
+
+func (m *Metric) Gather(name string) ([]*dto.Metric, error) {
+	gf, err := m.Registry().Gather()
+	if err == nil {
+		for _, g := range gf {
+			if g.GetName() == name {
+				return g.GetMetric(), nil
+			}
+		}
+	}
+
+	return nil, err
+}
+
+func (m *Metric) CacheLatency(name, action string, n time.Duration) {
+	m.cacheLatency.With(prometheus.Labels{"name": name, "action": action}).Observe(n.Seconds())
 }
