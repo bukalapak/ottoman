@@ -9,213 +9,138 @@ import (
 	"time"
 
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
+	"github.com/bukalapak/ottoman/_qtest"
 	"github.com/bukalapak/ottoman/memcache"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"github.com/subosito/gotenv"
 )
 
-type MemcacheSuite struct {
-	suite.Suite
-	client *gomemcache.Client
-	c      *memcache.Memcache
-	m      *Metric
-	cm     *memcache.Memcache
-}
-
-func (suite *MemcacheSuite) SetupSuite() {
+func TestMemcache(t *testing.T) {
 	gotenv.Load("../env.sample")
-}
 
-func (suite *MemcacheSuite) TearDownSuite() {
+	addr := os.Getenv("MEMCACHE_ADDR")
+	client := gomemcache.New(addr)
+
+	t.Run("Name", func(t *testing.T) {
+		c := memcache.New([]string{addr}, memcache.Option{})
+		assert.Equal(t, "Memcached", c.Name())
+	})
+
+	t.Run("Read", func(t *testing.T) {
+		loadUncompressedFixtures(client)
+
+		m := NewMetric()
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: false,
+			Metric:   m,
+		})
+
+		b, err := c.Read("foo")
+		assert.Nil(t, err)
+		assert.Equal(t, `{"foo":"bar"}`, string(b))
+
+		m.Assert(t, "Memcached", "Get")
+
+		cleanFixtures(client)
+	})
+
+	t.Run("Read-Miss", func(t *testing.T) {
+		c := memcache.New([]string{addr}, memcache.Option{})
+
+		b, err := c.Read("boo")
+		assert.Error(t, gomemcache.ErrCacheMiss, err.Error())
+		assert.Nil(t, b)
+	})
+
+	t.Run("Read-Zlib", func(t *testing.T) {
+		loadCompressedFixtures(client)
+
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: true,
+		})
+
+		b, err := c.Read("foo")
+		assert.Nil(t, err)
+		assert.Equal(t, `{"foo":"bar"}`, string(b))
+
+		cleanFixtures(client)
+	})
+
+	t.Run("Read-Zlib-Uncompressed-Cache", func(t *testing.T) {
+		loadUncompressedFixtures(client)
+
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: true,
+		})
+
+		b, err := c.Read("foo")
+		assert.Nil(t, err)
+		assert.Equal(t, `{"foo":"bar"}`, string(b))
+
+		cleanFixtures(client)
+	})
+
+	t.Run("ReadMulti", func(t *testing.T) {
+		loadCompressedFixtures(client)
+
+		m := NewMetric()
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: true,
+			Metric:   m,
+		})
+
+		keys := []string{
+			"foo",
+			"boo",
+			"fox",
+		}
+
+		z, err := c.ReadMulti(keys)
+		assert.Nil(t, err)
+		assert.Len(t, z, 2)
+
+		for _, key := range keys {
+			switch key {
+			case "boo":
+				assert.Nil(t, z[key])
+			case "foo":
+				assert.Equal(t, []byte(`{"foo":"bar"}`), z[key])
+			case "fox":
+				assert.Equal(t, []byte(`{"fox":"baz"}`), z[key])
+			}
+		}
+
+		m.Assert(t, "Memcached", "GetMulti")
+
+		cleanFixtures(client)
+	})
+
+	t.Run("ReadMulti-Failure", func(t *testing.T) {
+		loadCompressedFixtures(client)
+
+		c := memcache.New([]string{addr}, memcache.Option{
+			Timeout: 1 * time.Microsecond,
+		})
+
+		m, err := c.ReadMulti([]string{"foo", "boo", "fox"})
+		assert.NotNil(t, err)
+		assert.Len(t, m, 0)
+
+		cleanFixtures(client)
+	})
+
 	os.Clearenv()
 }
 
-func (suite *MemcacheSuite) Addr() string {
-	return os.Getenv("MEMCACHE_ADDR")
+func loadCompressedFixtures(client *gomemcache.Client) {
+	loadFixtures(client, true)
 }
 
-func (suite *MemcacheSuite) SetupTest() {
-	suite.NewClient(suite.Addr(), memcache.Option{
-		Compress: true,
-	})
+func loadUncompressedFixtures(client *gomemcache.Client) {
+	loadFixtures(client, false)
 }
 
-func (suite *MemcacheSuite) NewClient(addr string, option memcache.Option) {
-	suite.client = gomemcache.New(addr)
-	suite.c = memcache.New([]string{addr}, option)
-	suite.m = NewMetric()
-
-	opts := option
-	opts.Metric = suite.m
-
-	suite.cm = memcache.New([]string{addr}, opts)
-}
-
-func (suite *MemcacheSuite) TearDownTest() {
-	suite.client.Delete("foo")
-	suite.client.Delete("baz")
-}
-
-func (suite *MemcacheSuite) TestName() {
-	assert.Equal(suite.T(), "Memcached", suite.c.Name())
-}
-
-func (suite *MemcacheSuite) TestRead() {
-	suite.NewClient(suite.Addr(), memcache.Option{
-		Compress: false,
-	})
-
-	suite.loadFixtures(false)
-
-	b, err := suite.c.Read("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
-}
-
-func (suite *MemcacheSuite) TestRead_metric() {
-	suite.NewClient(suite.Addr(), memcache.Option{
-		Compress: false,
-	})
-
-	suite.loadFixtures(false)
-
-	b, err := suite.cm.Read("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
-
-	mc, err := suite.m.Gather("cache_latency_seconds")
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), mc, 1)
-
-	labels := map[string]string{
-		"name":   "Memcached",
-		"action": "Get",
-	}
-
-	for _, m := range mc {
-		assert.Equal(suite.T(), uint64(1), m.GetHistogram().GetSampleCount())
-		assert.NotZero(suite.T(), m.GetHistogram().GetSampleSum())
-
-		for _, label := range m.GetLabel() {
-			assert.Equal(suite.T(), labels[label.GetName()], label.GetValue())
-		}
-	}
-}
-
-func (suite *MemcacheSuite) TestRead_miss() {
-	suite.loadFixtures(false)
-
-	b, err := suite.c.Read("boo")
-	assert.Error(suite.T(), gomemcache.ErrCacheMiss, err.Error())
-	assert.Nil(suite.T(), b)
-}
-
-func (suite *MemcacheSuite) TestRead_zlib() {
-	suite.loadFixtures(true)
-
-	b, err := suite.c.Read("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
-}
-
-func (suite *MemcacheSuite) TestRead_zlib_uncompressedCache() {
-	suite.loadFixtures(false)
-
-	b, err := suite.c.Read("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), `{"foo":"bar"}`, string(b))
-}
-
-func (suite *MemcacheSuite) TestRead_unknownCache() {
-	suite.loadFixtures(true)
-
-	b, err := suite.c.Read("boo")
-	assert.NotNil(suite.T(), err)
-	assert.Nil(suite.T(), b)
-}
-
-func (suite *MemcacheSuite) TestReadMulti() {
-	suite.loadFixtures(true)
-
-	keys := []string{
-		"foo",
-		"boo",
-		"fox",
-	}
-
-	m, err := suite.c.ReadMulti(keys)
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), m, 2)
-
-	for _, key := range keys {
-		switch key {
-		case "boo":
-			assert.Nil(suite.T(), m[key])
-		case "foo":
-			assert.Equal(suite.T(), []byte(`{"foo":"bar"}`), m[key])
-		case "fox":
-			assert.Equal(suite.T(), []byte(`{"fox":"baz"}`), m[key])
-		}
-	}
-}
-
-func (suite *MemcacheSuite) TestReadMulti_metric() {
-	suite.loadFixtures(true)
-
-	keys := []string{
-		"foo",
-		"boo",
-		"fox",
-	}
-
-	m, err := suite.cm.ReadMulti(keys)
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), m, 2)
-
-	mc, err := suite.m.Gather("cache_latency_seconds")
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), mc, 1)
-
-	labels := map[string]string{
-		"name":   "Memcached",
-		"action": "GetMulti",
-	}
-
-	for _, m := range mc {
-		assert.Equal(suite.T(), uint64(1), m.GetHistogram().GetSampleCount())
-		assert.NotZero(suite.T(), m.GetHistogram().GetSampleSum())
-
-		for _, label := range m.GetLabel() {
-			assert.Equal(suite.T(), labels[label.GetName()], label.GetValue())
-		}
-	}
-}
-
-func (suite *MemcacheSuite) TestReadMulti_failure() {
-	suite.loadFixtures(true)
-	suite.NewClient(suite.Addr(), memcache.Option{
-		Timeout: 1 * time.Microsecond,
-	})
-
-	defer func() {
-		suite.NewClient(suite.Addr(), memcache.Option{
-			Compress: true,
-		})
-	}()
-
-	m, err := suite.c.ReadMulti([]string{"foo", "boo", "fox"})
-	assert.NotNil(suite.T(), err)
-	assert.Len(suite.T(), m, 0)
-}
-
-func TestMemcacheSuite(t *testing.T) {
-	suite.Run(t, new(MemcacheSuite))
-}
-
-func (suite *MemcacheSuite) loadFixtures(compress bool) {
+func loadFixtures(client *gomemcache.Client, compress bool) {
 	data := map[string]string{
 		"foo": `{"foo":"bar"}`,
 		"fox": `{"fox":"baz"}`,
@@ -243,48 +168,18 @@ func (suite *MemcacheSuite) loadFixtures(compress bool) {
 			Expiration: int32(time.Minute.Seconds()),
 		}
 
-		err := suite.client.Set(x)
+		err := client.Set(x)
 		if err != nil {
 			panic(err)
 		}
 	}
 }
 
-type Metric struct {
-	cacheLatency *prometheus.HistogramVec
-	registry     *prometheus.Registry
+func cleanFixtures(client *gomemcache.Client) {
+	client.Delete("foo")
+	client.Delete("baz")
 }
 
-func NewMetric() *Metric {
-	m := &Metric{registry: prometheus.NewRegistry()}
-
-	m.cacheLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "cache_latency_seconds",
-		Help: "A histogram of the cache latency in seconds.",
-	}, []string{"name", "action"})
-
-	m.registry.MustRegister(m.cacheLatency)
-
-	return m
-}
-
-func (m *Metric) Registry() *prometheus.Registry {
-	return m.registry
-}
-
-func (m *Metric) Gather(name string) ([]*dto.Metric, error) {
-	gf, err := m.Registry().Gather()
-	if err == nil {
-		for _, g := range gf {
-			if g.GetName() == name {
-				return g.GetMetric(), nil
-			}
-		}
-	}
-
-	return nil, err
-}
-
-func (m *Metric) CacheLatency(name, action string, n time.Duration) {
-	m.cacheLatency.With(prometheus.Labels{"name": name, "action": action}).Observe(n.Seconds())
+func NewMetric() *_qtest.CacheMetric {
+	return _qtest.NewCacheMetric()
 }
