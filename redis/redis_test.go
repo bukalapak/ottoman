@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bukalapak/ottoman/_qtest"
 	"github.com/bukalapak/ottoman/cache"
+	"github.com/bukalapak/ottoman/internal/_qtest"
 	"github.com/bukalapak/ottoman/redis"
 	envx "github.com/bukalapak/ottoman/x/env"
 	"github.com/stretchr/testify/assert"

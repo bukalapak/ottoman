@@ -9,7 +9,7 @@ import (
 	"time"
 
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
-	"github.com/bukalapak/ottoman/_qtest"
+	"github.com/bukalapak/ottoman/internal/_qtest"
 	"github.com/bukalapak/ottoman/memcache"
 	"github.com/stretchr/testify/assert"
 	"github.com/subosito/gotenv"
