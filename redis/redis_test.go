@@ -33,7 +33,8 @@ func TestRedis(t *testing.T) {
 		c := NewRedis(nil)
 
 		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis", c.Name()) })
-		t.Run("Read", func(t *testing.T) { testReadMetric(t, client) })
+		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
+		t.Run("Read-Metric", func(t *testing.T) { testReadMetric(t, client) })
 		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
 		t.Run("ReadMulti", func(t *testing.T) { testReadMultiMetric(t, client) })
 		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
@@ -45,7 +46,8 @@ func TestRedis(t *testing.T) {
 		c := NewRedisCluster(nil)
 
 		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis Cluster", c.Name()) })
-		t.Run("Read", func(t *testing.T) { testReadClusterMetric(t, client) })
+		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
+		t.Run("Read-Metric", func(t *testing.T) { testReadClusterMetric(t, client) })
 		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
 		t.Run("ReadMulti", func(t *testing.T) { testReadMultiClusterMetric(t, client) })
 		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
