@@ -6,17 +6,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bukalapak/ottoman/_qtest"
+	"github.com/bukalapak/ottoman/cache"
 	"github.com/bukalapak/ottoman/redis"
 	envx "github.com/bukalapak/ottoman/x/env"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"github.com/subosito/gotenv"
 	redisc "gopkg.in/redis.v3"
 )
 
-type connector interface {
+type Connector interface {
 	Get(key string) *redisc.StringCmd
 	MGet(keys ...string) *redisc.SliceCmd
 	Incr(key string) *redisc.IntCmd
@@ -26,70 +25,104 @@ type connector interface {
 	TTL(key string) *redisc.DurationCmd
 }
 
-type CommonSuite struct {
-	suite.Suite
-	client connector
-	c      *redis.Redis
-	m      *Metric
-	cm     *redis.Redis
-}
-
-func (suite *CommonSuite) SetupSuite() {
+func TestRedis(t *testing.T) {
 	gotenv.Load("../env.sample")
-}
 
-func (suite *CommonSuite) TearDownSuite() {
+	t.Run("Standalone", func(t *testing.T) {
+		client := NewRedisConnector()
+		c := NewRedis(nil)
+
+		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis", c.Name()) })
+		t.Run("Read", func(t *testing.T) { testReadMetric(t, client) })
+		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
+		t.Run("ReadMulti", func(t *testing.T) { testReadMultiMetric(t, client) })
+		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
+		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
+	})
+
+	t.Run("RedisCluster", func(t *testing.T) {
+		client := NewRedisClusterConnector()
+		c := NewRedisCluster(nil)
+
+		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis Cluster", c.Name()) })
+		t.Run("Read", func(t *testing.T) { testReadClusterMetric(t, client) })
+		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
+		t.Run("ReadMulti", func(t *testing.T) { testReadMultiClusterMetric(t, client) })
+		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
+		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
+		t.Run("ReadMulti-CROSSSLOT", func(t *testing.T) {
+			loadFixtures(client)
+
+			keys := []string{
+				"foo",
+				"{x}.fox",
+			}
+
+			m, err := c.ReadMulti(keys)
+			assert.Contains(t, err.Error(), "CROSSSLOT")
+			assert.Nil(t, m)
+
+			cleanFixtures(client)
+		})
+	})
+
 	os.Clearenv()
 }
 
-func (suite *CommonSuite) TearDownTest() {
-	suite.client.Del("foo")
+func testReadMetric(t *testing.T, client Connector) {
+	m := NewMetric()
+	c := NewRedis(m)
+
+	testRead(t, client, c)
+
+	m.Assert(t, "Redis", "Get")
 }
 
-func (suite *CommonSuite) TestRead() {
-	suite.loadFixtures()
+func testReadClusterMetric(t *testing.T, client Connector) {
+	m := NewMetric()
+	c := NewRedisCluster(m)
 
-	b, err := suite.c.Read("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), []byte(`{"foo":"bar"}`), b)
+	testRead(t, client, c)
+
+	m.Assert(t, "Redis Cluster", "Get")
 }
 
-func (suite *CommonSuite) ReadMetric(name string) {
-	suite.loadFixtures()
+func testRead(t *testing.T, client Connector, c *redis.Redis) {
+	loadFixtures(client)
 
-	b, err := suite.cm.Read("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), []byte(`{"foo":"bar"}`), b)
+	b, err := c.Read("foo")
+	assert.Nil(t, err)
+	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
 
-	mc, err := suite.m.Gather("cache_latency_seconds")
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), mc, 1)
-
-	labels := map[string]string{
-		"name":   name,
-		"action": "Get",
-	}
-
-	for _, m := range mc {
-		assert.Equal(suite.T(), uint64(1), m.GetHistogram().GetSampleCount())
-		assert.NotZero(suite.T(), m.GetHistogram().GetSampleSum())
-
-		for _, label := range m.GetLabel() {
-			assert.Equal(suite.T(), labels[label.GetName()], label.GetValue())
-		}
-	}
+	cleanFixtures(client)
 }
 
-func (suite *CommonSuite) TestRead_unknownCache() {
-	suite.loadFixtures()
-
-	b, err := suite.c.Read("boo")
-	assert.NotNil(suite.T(), err)
-	assert.Nil(suite.T(), b)
+func testReadUnknown(t *testing.T, c *redis.Redis) {
+	b, err := c.Read("boo")
+	assert.NotNil(t, err)
+	assert.Nil(t, b)
 }
 
-func (suite *CommonSuite) TestReadMulti() {
-	suite.loadFixtures()
+func testReadMultiMetric(t *testing.T, client Connector) {
+	m := NewMetric()
+	c := NewRedis(m)
+
+	testReadMulti(t, client, c)
+
+	m.Assert(t, "Redis", "MGet")
+}
+
+func testReadMultiClusterMetric(t *testing.T, client Connector) {
+	m := NewMetric()
+	c := NewRedisCluster(m)
+
+	testReadMulti(t, client, c)
+
+	m.Assert(t, "Redis Cluster", "MGet")
+}
+
+func testReadMulti(t *testing.T, client Connector, c *redis.Redis) {
+	loadFixtures(client)
 
 	keys := []string{
 		"{x}.foo",
@@ -97,74 +130,84 @@ func (suite *CommonSuite) TestReadMulti() {
 		"{x}.fox",
 	}
 
-	m, err := suite.c.ReadMulti(keys)
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), m, 2)
+	z, err := c.ReadMulti(keys)
+	assert.Nil(t, err)
+	assert.Len(t, z, 2)
 
 	for _, key := range keys {
 		switch key {
 		case "{x}.boo":
-			assert.Nil(suite.T(), m[key])
+			assert.Nil(t, z[key])
 		case "{x}.foo":
-			assert.Equal(suite.T(), []byte(`{"foo":"bar"}`), m[key])
+			assert.Equal(t, []byte(`{"foo":"bar"}`), z[key])
 		case "{x}.fox":
-			assert.Equal(suite.T(), []byte(`{"fox":"baz"}`), m[key])
+			assert.Equal(t, []byte(`{"fox":"baz"}`), z[key])
 		}
 	}
+
+	cleanFixtures(client)
 }
 
-func (suite *CommonSuite) ReadMultiMetric(name string) {
-	suite.loadFixtures()
+func testIncr(t *testing.T, c *redis.Redis) {
+	n, err := c.Incr("foo")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), n)
+}
 
-	keys := []string{
-		"{x}.foo",
-		"{x}.boo",
-		"{x}.fox",
+func testExpire(t *testing.T, client Connector, c *redis.Redis) {
+	err := client.Set("foo", "bar", time.Minute).Err()
+	assert.Nil(t, err)
+
+	b, err := c.Expire("foo", time.Hour)
+	assert.Nil(t, err)
+	assert.True(t, b)
+
+	cmd := client.TTL("foo")
+	assert.Nil(t, cmd.Err())
+	assert.Equal(t, time.Hour, cmd.Val())
+
+	cleanFixtures(client)
+}
+
+func NewRedisConnector() Connector {
+	return redisc.NewClient(&redisc.Options{
+		Addr: os.Getenv("REDIS_ADDR"),
+		DB:   int64(envx.Int("REDIS_DB")),
+	})
+}
+
+func NewRedis(m cache.MetricTracer) *redis.Redis {
+	opts := &redis.Option{
+		Addrs: []string{os.Getenv("REDIS_ADDR")},
+		DB:    int64(envx.Int("REDIS_DB")),
 	}
 
-	m, err := suite.cm.ReadMulti(keys)
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), m, 2)
-
-	mc, err := suite.m.Gather("cache_latency_seconds")
-	assert.Nil(suite.T(), err)
-	assert.Len(suite.T(), mc, 1)
-
-	labels := map[string]string{
-		"name":   name,
-		"action": "MGet",
+	if m != nil {
+		opts.Metric = m
 	}
 
-	for _, m := range mc {
-		assert.Equal(suite.T(), uint64(1), m.GetHistogram().GetSampleCount())
-		assert.NotZero(suite.T(), m.GetHistogram().GetSampleSum())
+	return redis.New(opts)
+}
 
-		for _, label := range m.GetLabel() {
-			assert.Equal(suite.T(), labels[label.GetName()], label.GetValue())
-		}
+func clusterAddrs() []string {
+	return strings.Split(os.Getenv("REDIS_CLUSTER_ADDR"), ",")
+}
+
+func NewRedisClusterConnector() Connector {
+	return redisc.NewClusterClient(&redisc.ClusterOptions{Addrs: clusterAddrs()})
+}
+
+func NewRedisCluster(m cache.MetricTracer) *redis.Redis {
+	opts := &redis.Option{Addrs: clusterAddrs()}
+
+	if m != nil {
+		opts.Metric = m
 	}
+
+	return redis.New(opts)
 }
 
-func (suite *CommonSuite) TestIncr() {
-	n, err := suite.c.Incr("foo")
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int64(1), n)
-}
-
-func (suite *CommonSuite) TestExpire() {
-	err := suite.client.Set("foo", "bar", time.Minute).Err()
-	assert.Nil(suite.T(), err)
-
-	b, err := suite.c.Expire("foo", time.Hour)
-	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), b)
-
-	cmd := suite.client.TTL("foo")
-	assert.Nil(suite.T(), cmd.Err())
-	assert.Equal(suite.T(), time.Hour, cmd.Val())
-}
-
-func (suite *CommonSuite) loadFixtures() {
+func loadFixtures(client Connector) {
 	data := map[string]string{
 		"foo":     `{"foo":"bar"}`,
 		"fox":     `{"fox":"baz"}`,
@@ -174,138 +217,17 @@ func (suite *CommonSuite) loadFixtures() {
 	}
 
 	for k, v := range data {
-		err := suite.client.Set(k, []byte(v), time.Minute).Err()
+		err := client.Set(k, []byte(v), time.Minute).Err()
 		if err != nil {
 			panic(err)
 		}
 	}
 }
 
-type RedisSuite struct {
-	*CommonSuite
+func cleanFixtures(client Connector) {
+	client.Del("foo")
 }
 
-func (suite *RedisSuite) SetupTest() {
-	suite.client = redisc.NewClient(&redisc.Options{
-		Addr: os.Getenv("REDIS_ADDR"),
-		DB:   int64(envx.Int("REDIS_DB")),
-	})
-
-	suite.c = redis.New(&redis.Option{
-		Addrs: []string{os.Getenv("REDIS_ADDR")},
-		DB:    int64(envx.Int("REDIS_DB")),
-	})
-
-	suite.m = NewMetric()
-	suite.cm = redis.New(&redis.Option{
-		Addrs:  []string{os.Getenv("REDIS_ADDR")},
-		DB:     int64(envx.Int("REDIS_DB")),
-		Metric: suite.m,
-	})
-}
-
-func (suite *RedisSuite) TestName() {
-	assert.Equal(suite.T(), "Redis", suite.c.Name())
-}
-
-func (suite *RedisSuite) TestRead_metric() {
-	suite.ReadMetric("Redis")
-}
-
-func (suite *RedisSuite) TestReadMulti_metric() {
-	suite.ReadMultiMetric("Redis")
-}
-
-func TestRedisSuite(t *testing.T) {
-	suite.Run(t, &RedisSuite{new(CommonSuite)})
-}
-
-type RedisClusterSuite struct {
-	*CommonSuite
-}
-
-func (suite *RedisClusterSuite) SetupTest() {
-	addrs := strings.Split(os.Getenv("REDIS_CLUSTER_ADDR"), ",")
-
-	suite.client = redisc.NewClusterClient(&redisc.ClusterOptions{
-		Addrs: addrs,
-	})
-
-	suite.c = redis.New(&redis.Option{
-		Addrs: addrs,
-	})
-
-	suite.m = NewMetric()
-	suite.cm = redis.New(&redis.Option{
-		Addrs:  addrs,
-		Metric: suite.m,
-	})
-}
-
-func (suite *RedisClusterSuite) TestName() {
-	assert.Equal(suite.T(), "Redis Cluster", suite.c.Name())
-}
-
-func (suite *RedisClusterSuite) TestRead_metric() {
-	suite.ReadMetric("Redis Cluster")
-}
-
-func (suite *RedisClusterSuite) TestReadMulti_metric() {
-	suite.ReadMultiMetric("Redis Cluster")
-}
-
-func (suite *RedisClusterSuite) TestReadMulti_CROSSSLOT() {
-	suite.loadFixtures()
-
-	keys := []string{
-		"foo",
-		"{x}.fox",
-	}
-
-	m, err := suite.c.ReadMulti(keys)
-	assert.Contains(suite.T(), err.Error(), "CROSSSLOT")
-	assert.Nil(suite.T(), m)
-}
-
-func TestRedisClusterSuite(t *testing.T) {
-	suite.Run(t, &RedisClusterSuite{new(CommonSuite)})
-}
-
-type Metric struct {
-	cacheLatency *prometheus.HistogramVec
-	registry     *prometheus.Registry
-}
-
-func NewMetric() *Metric {
-	m := &Metric{registry: prometheus.NewRegistry()}
-
-	m.cacheLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "cache_latency_seconds",
-		Help: "A histogram of the cache latency in seconds.",
-	}, []string{"name", "action"})
-
-	m.registry.MustRegister(m.cacheLatency)
-
-	return m
-}
-
-func (m *Metric) Registry() *prometheus.Registry {
-	return m.registry
-}
-
-func (m *Metric) Gather(name string) ([]*dto.Metric, error) {
-	gf, err := m.Registry().Gather()
-	if err == nil {
-		for _, g := range gf {
-			if g.GetName() == name {
-				return g.GetMetric(), nil
-			}
-		}
-	}
-
-	return nil, err
-}
-
-func (m *Metric) CacheLatency(name, action string, n time.Duration) {
-	m.cacheLatency.With(prometheus.Labels{"name": name, "action": action}).Observe(n.Seconds())
+func NewMetric() *_qtest.CacheMetric {
+	return _qtest.NewCacheMetric()
 }
