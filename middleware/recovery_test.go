@@ -7,53 +7,28 @@ import (
 
 	"github.com/bukalapak/ottoman/middleware"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 )
 
-type RecoverySuite struct {
-	MiddlewareSuite
-}
-
-func (suite *RecoverySuite) setupServer(agent middleware.Notifier, fn func(w http.ResponseWriter, r *http.Request)) {
-	m := http.NewServeMux()
-	m.HandleFunc("/", fn)
-	v := middleware.NewRecovery(agent)
-	suite.server = httptest.NewServer(v.Handler(m))
-}
-
-func (suite *RecoverySuite) Do(r *http.Request) {
-	hc := http.DefaultClient
-
-	resp, err := hc.Do(r)
-	assert.Nil(suite.T(), err)
-
-	defer resp.Body.Close()
-
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.StatusCode)
-}
-
-func (suite *RecoverySuite) TestRecovery() {
-	agent := &SampleAgent{t: suite.T(), Enabled: true}
-	suite.setupServer(agent, func(w http.ResponseWriter, r *http.Request) {
+func TestRecovery(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		panic("!!!")
-	})
-
-	req := suite.NewRequest()
-	suite.Do(req)
-}
-
-type SampleAgent struct {
-	t       *testing.T
-	Enabled bool
-}
-
-func (a *SampleAgent) Notify(err interface{}, stack []byte) {
-	if a.Enabled {
-		assert.Equal(a.t, "!!!", err)
-		assert.NotEmpty(a.t, stack)
 	}
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	rec := httptest.NewRecorder()
+	cov := middleware.NewRecovery(NewAgent(t))
+	cov.Handler(http.HandlerFunc(fn)).ServeHTTP(rec, req)
 }
 
-func TestRecoverySuite(t *testing.T) {
-	suite.Run(t, new(RecoverySuite))
+type Agent struct {
+	t *testing.T
+}
+
+func NewAgent(t *testing.T) *Agent {
+	return &Agent{t: t}
+}
+
+func (a *Agent) Notify(err interface{}, stack []byte) {
+	assert.Equal(a.t, "!!!", err)
+	assert.NotEmpty(a.t, stack)
 }

@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -8,90 +9,52 @@ import (
 
 	"github.com/bukalapak/ottoman/middleware"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 )
 
-type RealIPSuite struct {
-	MiddlewareSuite
-	sampleIP  net.IP
-	anotherIP net.IP
-	localIP   net.IP
-}
+func TestRealIP(t *testing.T) {
+	sampleIP := net.ParseIP("202.212.212.202")
 
-func (suite *RealIPSuite) SetupTest() {
-	suite.sampleIP = net.ParseIP("202.212.212.202")
-	suite.anotherIP = net.ParseIP("202.222.222.202")
-	suite.localIP = net.ParseIP("127.0.0.1")
-}
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if ip, ok := middleware.IPFromContext(r.Context()); ok {
+			io.WriteString(w, ip)
+		}
+	}
 
-func (suite *RealIPSuite) setupServer(fn func(w http.ResponseWriter, r *http.Request)) {
-	m := http.NewServeMux()
-	m.HandleFunc("/", fn)
-	suite.server = httptest.NewServer(middleware.RealIP(m))
-}
+	x := func(req *http.Request, ip string) {
+		rec := httptest.NewRecorder()
 
-func (suite *RealIPSuite) TestRealIP() {
-	suite.setupServer(func(w http.ResponseWriter, r *http.Request) {
-		rip, ok := middleware.IPFromContext(r.Context())
-		assert.True(suite.T(), ok)
-		assert.Equal(suite.T(), suite.sampleIP.String(), rip)
-		assert.Equal(suite.T(), suite.sampleIP.String(), r.Header.Get("X-Forwarded-For"))
-		w.WriteHeader(http.StatusNoContent)
+		middleware.RealIP(http.HandlerFunc(fn)).ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, ip, rec.Body.String())
+	}
+
+	t.Run("RealIP", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/", nil)
+		req.Header.Add("X-Forwarded-For", sampleIP.String())
+		req.Header.Add("X-Real-IP", "222.222.222.222")
+
+		x(req, sampleIP.String())
 	})
 
-	req := suite.NewRequest()
-	req.Header.Add("X-Forwarded-For", suite.sampleIP.String())
-	req.Header.Add("X-Real-IP", suite.anotherIP.String())
+	t.Run("X-Forwarded-For", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/", nil)
+		req.Header.Add("X-Forwarded-For", sampleIP.String())
 
-	suite.Do(req)
-}
-
-func (suite *RealIPSuite) TestRealIP_xForwardedFor() {
-	suite.setupServer(func(w http.ResponseWriter, r *http.Request) {
-		rip, ok := middleware.IPFromContext(r.Context())
-		assert.True(suite.T(), ok)
-		assert.Equal(suite.T(), suite.sampleIP.String(), rip)
-		assert.Equal(suite.T(), suite.sampleIP.String(), r.Header.Get("X-Forwarded-For"))
-		w.WriteHeader(http.StatusNoContent)
+		x(req, sampleIP.String())
 	})
 
-	req := suite.NewRequest()
-	req.Header.Add("X-Forwarded-For", suite.sampleIP.String())
+	t.Run("X-Real-IP", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/", nil)
+		req.Header.Add("X-Real-IP", sampleIP.String())
 
-	suite.Do(req)
-}
-
-func (suite *RealIPSuite) TestRealIP_xRealIP() {
-	suite.setupServer(func(w http.ResponseWriter, r *http.Request) {
-		rip, ok := middleware.IPFromContext(r.Context())
-		assert.True(suite.T(), ok)
-		assert.Equal(suite.T(), suite.sampleIP.String(), rip)
-		assert.Equal(suite.T(), suite.sampleIP.String(), r.Header.Get("X-Real-IP"))
-		w.WriteHeader(http.StatusNoContent)
+		x(req, sampleIP.String())
 	})
 
-	req := suite.NewRequest()
-	req.Header.Add("X-Real-IP", suite.sampleIP.String())
+	t.Run("RemoteAddr", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		host, _, _ := net.SplitHostPort(req.RemoteAddr)
 
-	suite.Do(req)
-}
-
-func (suite *RealIPSuite) TestRealIP_remoteAddr() {
-	suite.setupServer(func(w http.ResponseWriter, r *http.Request) {
-		rip, ok := middleware.IPFromContext(r.Context())
-		assert.True(suite.T(), ok)
-		assert.Equal(suite.T(), suite.localIP.String(), rip)
-
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		assert.Nil(suite.T(), err)
-		assert.Equal(suite.T(), suite.localIP.String(), host)
-		w.WriteHeader(http.StatusNoContent)
+		x(req, host)
 	})
-
-	req := suite.NewRequest()
-	suite.Do(req)
-}
-
-func TestRealIPSuite(t *testing.T) {
-	suite.Run(t, new(RealIPSuite))
 }
