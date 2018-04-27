@@ -85,6 +85,14 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 	return mb, nil
 }
 
+func (s *Engine) ReadFetch(key string, r *http.Request) ([]byte, error) {
+	if b, err := s.Read(key); err == nil {
+		return b, nil
+	}
+
+	return s.Fetch(key, r)
+}
+
 func (s *Engine) Normalize(key string) string {
 	return Normalize(key, s.Prefix)
 }

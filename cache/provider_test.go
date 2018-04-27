@@ -201,3 +201,24 @@ func TestProvider_Namespace(t *testing.T) {
 	c.(*cache.Engine).Prefix = "api"
 	assert.Equal(t, "api", c.Namespace())
 }
+
+func TestProvider_ReadFetch(t *testing.T) {
+	h := NewRemoteServer()
+	defer h.Close()
+
+	m := map[string]string{
+		"foo": `{"foo":"bar"}`,
+		"zoo": `{"zoo":"zac"}`,
+	}
+
+	q := NewRequest(h.URL)
+	r := NewReader()
+	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
+
+	for k, v := range m {
+		b, err := c.ReadFetch(k, q)
+		assert.Nil(t, err)
+		assert.Equal(t, v, string(b))
+	}
+}

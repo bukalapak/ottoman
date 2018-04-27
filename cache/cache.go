@@ -21,6 +21,11 @@ type Fetcher interface {
 	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
 }
 
+// ReadFetcher is the interface for performing Reader and Fetcher combinations
+type ReadFetcher interface {
+	ReadFetch(key string, r *http.Request) ([]byte, error)
+}
+
 // Resolver is the interface for resolving cache key to http request and cache router
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
@@ -37,6 +42,7 @@ type Normalizer interface {
 type Provider interface {
 	Reader
 	Fetcher
+	ReadFetcher
 	Normalizer
 	Namespace() string
 }
