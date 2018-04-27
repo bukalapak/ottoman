@@ -222,3 +222,46 @@ func TestProvider_ReadFetch(t *testing.T) {
 		assert.Equal(t, v, string(b))
 	}
 }
+
+func TestProvider_ReadFetchMulti(t *testing.T) {
+	h := NewRemoteServer()
+	defer h.Close()
+
+	q := NewRequest(h.URL)
+	r := NewReader()
+	c := cache.NewProvider(r)
+	c.(*cache.Engine).Prefix = "api"
+	c.(*cache.Engine).Resolver = NewResolver()
+
+	keys := []string{
+		"api:foo",
+		"zoo",
+	}
+
+	m, err := c.ReadFetchMulti(keys, q)
+	assert.Nil(t, err)
+	assert.Len(t, m, 2)
+	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["api:zoo"])
+	assert.Equal(t, []byte(`{"foo":"bar"}`), m["api:foo"])
+}
+
+func TestProvider_ReadFetchMulti_failure(t *testing.T) {
+	h := NewRemoteServer()
+	defer h.Close()
+
+	q := NewRequest(h.URL)
+	r := &XSample{}
+	c := cache.NewProvider(r)
+	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Transport = &FailureTransport{}
+
+	keys := []string{
+		"api:foo",
+		"zoo",
+	}
+
+	m, err := c.ReadFetchMulti(keys, q)
+	assert.Nil(t, err)
+	assert.Empty(t, m["foo"])
+	assert.Empty(t, m["zoo"])
+}

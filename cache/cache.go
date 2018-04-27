@@ -24,6 +24,7 @@ type Fetcher interface {
 // ReadFetcher is the interface for performing Reader and Fetcher combinations
 type ReadFetcher interface {
 	ReadFetch(key string, r *http.Request) ([]byte, error)
+	ReadFetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
 }
 
 // Resolver is the interface for resolving cache key to http request and cache router

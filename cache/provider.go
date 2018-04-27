@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -93,6 +94,30 @@ func (s *Engine) ReadFetch(key string, r *http.Request) ([]byte, error) {
 	return s.Fetch(key, r)
 }
 
+func (s *Engine) ReadFetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
+	mb, err := s.ReadMulti(keys)
+	if err != nil {
+		s.Logger.Info("ottoman/cache",
+			zap.String("method", "ReadMulti"),
+			zap.String("error", err.Error()),
+		)
+	}
+
+	if len(mb) == 0 {
+		mb = make(map[string][]byte)
+	}
+
+	cs := s.cachedKeys(mb, keys)
+	us := s.uncachedKeys(cs, keys)
+	mx, _ := s.FetchMulti(us, r)
+
+	for k, v := range mx {
+		mb[k] = v
+	}
+
+	return mb, nil
+}
+
 func (s *Engine) Normalize(key string) string {
 	return Normalize(key, s.Prefix)
 }
@@ -141,4 +166,40 @@ func (s *Engine) httpTransport() http.RoundTripper {
 	}
 
 	return http.DefaultTransport
+}
+
+func (s *Engine) uncachedKeys(cs, keys []string) []string {
+	us := []string{}
+
+	for _, k := range keys {
+		if !sliceContains(cs, k) {
+			us = append(us, s.Normalize(k))
+		}
+	}
+
+	return us
+}
+
+func (s *Engine) cachedKeys(mb map[string][]byte, keys []string) []string {
+	cs := []string{}
+
+	for k, b := range mb {
+		for _, y := range keys {
+			if strings.Contains(k, y) && len(b) != 0 {
+				cs = append(cs, s.Normalize(y))
+			}
+		}
+	}
+
+	return cs
+}
+
+func sliceContains(ss []string, k string) bool {
+	for _, v := range ss {
+		if v == k {
+			return true
+		}
+	}
+
+	return false
 }
