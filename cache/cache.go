@@ -48,9 +48,15 @@ type Provider interface {
 	Namespace() string
 }
 
-// MetricTracer traces metrics within internal provider action
+// MetricTracer traces metrics within provider action
 type MetricTracer interface {
 	CacheLatency(name, action string, n time.Duration)
+}
+
+// MetricCounter traces counters within provider action
+type MetricCounter interface {
+	IncrCacheCounter()
+	IncrBackendCounter()
 }
 
 // Normalize returns valid cache key. It can automatically detect prefixed/non-prefixed cache key and format the key properly.

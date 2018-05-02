@@ -1,6 +1,7 @@
 package cache_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -17,12 +18,16 @@ func TestProvider_Name(t *testing.T) {
 
 func TestProvider_Read(t *testing.T) {
 	r := NewReader()
+	n := NewCounter()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Counter = n
 
 	b, err := c.Read("foo")
 	assert.Nil(t, err)
 	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
+	assert.Equal(t, 1, n.C)
+	assert.Equal(t, 0, n.B)
 }
 
 func TestProvider_Read_namespace(t *testing.T) {
@@ -42,8 +47,10 @@ func TestProvider_Read_namespace(t *testing.T) {
 
 func TestProvider_ReadMulti(t *testing.T) {
 	r := NewReader()
+	n := NewCounter()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Counter = n
 
 	keys := []string{
 		"fox",
@@ -55,6 +62,8 @@ func TestProvider_ReadMulti(t *testing.T) {
 	assert.Len(t, m, 2)
 	assert.Equal(t, []byte(`{"fox":"baz"}`), m["fox"])
 	assert.Equal(t, []byte(`{"foo":"bar"}`), m["foo"])
+	assert.Equal(t, 1, n.C)
+	assert.Equal(t, 0, n.B)
 }
 
 func TestProvider_Fetch(t *testing.T) {
@@ -63,12 +72,16 @@ func TestProvider_Fetch(t *testing.T) {
 
 	q := NewRequest(h.URL)
 	r := NewReader()
+	n := NewCounter()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Counter = n
 
 	b, err := c.Fetch("zoo", q)
 	assert.Nil(t, err)
 	assert.Equal(t, `{"zoo":"zac"}`, string(b))
+	assert.Equal(t, 0, n.C)
+	assert.Equal(t, 1, n.B)
 }
 
 func TestProvider_Fetch_badKey(t *testing.T) {
@@ -135,8 +148,10 @@ func TestProvider_FetchMulti(t *testing.T) {
 
 	q := NewRequest(h.URL)
 	r := NewReader()
+	n := NewCounter()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Counter = n
 
 	keys := []string{
 		"api:foo",
@@ -148,6 +163,8 @@ func TestProvider_FetchMulti(t *testing.T) {
 	assert.Len(t, m, 2)
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["zoo"])
 	assert.Empty(t, m["foo"])
+	assert.Equal(t, 0, n.C)
+	assert.Equal(t, 2, n.B)
 }
 
 func TestProvider_FetchMulti_namespace(t *testing.T) {
@@ -213,14 +230,19 @@ func TestProvider_ReadFetch(t *testing.T) {
 
 	q := NewRequest(h.URL)
 	r := NewReader()
+	n := NewCounter()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Counter = n
 
 	for k, v := range m {
 		b, err := c.ReadFetch(k, q)
 		assert.Nil(t, err)
 		assert.Equal(t, v, string(b))
 	}
+
+	assert.Equal(t, 1, n.C)
+	assert.Equal(t, 1, n.B)
 }
 
 func TestProvider_ReadFetchMulti(t *testing.T) {
@@ -229,9 +251,11 @@ func TestProvider_ReadFetchMulti(t *testing.T) {
 
 	q := NewRequest(h.URL)
 	r := NewReader()
+	n := NewCounter()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Prefix = "api"
 	c.(*cache.Engine).Resolver = NewResolver()
+	c.(*cache.Engine).Counter = n
 
 	keys := []string{
 		"api:foo",
@@ -243,6 +267,8 @@ func TestProvider_ReadFetchMulti(t *testing.T) {
 	assert.Len(t, m, 2)
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["api:zoo"])
 	assert.Equal(t, []byte(`{"foo":"bar"}`), m["api:foo"])
+	assert.Equal(t, 1, n.C)
+	assert.Equal(t, 1, n.B)
 }
 
 func TestProvider_ReadFetchMulti_failure(t *testing.T) {
@@ -264,4 +290,28 @@ func TestProvider_ReadFetchMulti_failure(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, m["foo"])
 	assert.Empty(t, m["zoo"])
+}
+
+type simpleCounter struct {
+	mu sync.Mutex
+	C  int
+	B  int
+}
+
+func NewCounter() *simpleCounter {
+	return &simpleCounter{}
+}
+
+func (c *simpleCounter) IncrCacheCounter() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.C++
+}
+
+func (c *simpleCounter) IncrBackendCounter() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.B++
 }

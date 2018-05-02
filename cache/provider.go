@@ -12,22 +12,28 @@ import (
 )
 
 type Engine struct {
-	name      string
 	engine    Reader
 	Prefix    string
 	Resolver  Resolver
 	Timeout   time.Duration
 	Transport http.RoundTripper
+	Counter   MetricCounter
 	Logger    *zap.Logger
 }
 
 func NewProvider(r Reader) Provider {
-	return &Engine{engine: r, name: r.Name(), Logger: zap.New(nil)}
+	return &Engine{
+		engine:    r,
+		Counter:   &noopCounter{},
+		Timeout:   30 * time.Second,
+		Transport: http.DefaultTransport,
+		Logger:    zap.New(nil),
+	}
 }
 
 // Name returns cache backend identifier.
 func (s *Engine) Name() string {
-	return s.name
+	return s.engine.Name()
 }
 
 // Namespace returns cache Prefix
@@ -37,12 +43,22 @@ func (s *Engine) Namespace() string {
 
 // Read reads cache data on the cache backend based on key supplied.
 func (s *Engine) Read(key string) ([]byte, error) {
-	return s.engine.Read(s.Normalize(key))
+	b, err := s.engine.Read(s.Normalize(key))
+	if err == nil {
+		s.Counter.IncrCacheCounter()
+	}
+
+	return b, err
 }
 
 // ReadMulti bulk reads multiple cache keys.
 func (s *Engine) ReadMulti(keys []string) (map[string][]byte, error) {
-	return s.engine.ReadMulti(s.NormalizeMulti(keys))
+	mb, err := s.engine.ReadMulti(s.NormalizeMulti(keys))
+	if err == nil {
+		s.Counter.IncrCacheCounter()
+	}
+
+	return mb, err
 }
 
 func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
@@ -51,7 +67,12 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	return s.fetchRequest(req)
+	b, err := s.fetchRequest(req)
+	if err == nil {
+		s.Counter.IncrBackendCounter()
+	}
+
+	return b, err
 }
 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
@@ -155,17 +176,9 @@ func (s *Engine) fetchRequest(r *http.Request) ([]byte, error) {
 
 func (s *Engine) httpClient() *http.Client {
 	return &http.Client{
-		Transport: s.httpTransport(),
+		Transport: s.Transport,
 		Timeout:   s.Timeout,
 	}
-}
-
-func (s *Engine) httpTransport() http.RoundTripper {
-	if s.Transport != nil {
-		return s.Transport
-	}
-
-	return http.DefaultTransport
 }
 
 func (s *Engine) uncachedKeys(cs, keys []string) []string {
@@ -203,3 +216,8 @@ func sliceContains(ss []string, k string) bool {
 
 	return false
 }
+
+type noopCounter struct{}
+
+func (c *noopCounter) IncrCacheCounter()   {}
+func (c *noopCounter) IncrBackendCounter() {}
