@@ -18,6 +18,7 @@ type Engine struct {
 	Timeout   time.Duration
 	Transport http.RoundTripper
 	Counter   MetricCounter
+	Tracer    BackendTracer
 	Logger    *zap.Logger
 }
 
@@ -25,6 +26,7 @@ func NewProvider(r Reader) Provider {
 	return &Engine{
 		engine:    r,
 		Counter:   &noopCounter{},
+		Tracer:    &noopTracer{},
 		Timeout:   30 * time.Second,
 		Transport: http.DefaultTransport,
 		Logger:    zap.New(nil),
@@ -154,6 +156,7 @@ func (s *Engine) NormalizeMulti(keys []string) []string {
 }
 
 func (s *Engine) fetchRequest(r *http.Request) ([]byte, error) {
+	now := time.Now()
 	c := s.httpClient()
 
 	resp, err := c.Do(r)
@@ -166,6 +169,8 @@ func (s *Engine) fetchRequest(r *http.Request) ([]byte, error) {
 		zap.String("request_url", r.URL.String()),
 		zap.Int("request_status", resp.StatusCode),
 	)
+
+	s.Tracer.BackendLatency(r.URL.String(), resp.StatusCode, time.Since(now))
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("invalid http status: " + resp.Status)
@@ -221,3 +226,7 @@ type noopCounter struct{}
 
 func (c *noopCounter) IncrCacheCounter()   {}
 func (c *noopCounter) IncrBackendCounter() {}
+
+type noopTracer struct{}
+
+func (c *noopTracer) BackendLatency(route string, code int, n time.Duration) {}

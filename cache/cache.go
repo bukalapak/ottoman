@@ -48,9 +48,14 @@ type Provider interface {
 	Namespace() string
 }
 
-// MetricTracer traces metrics within provider action
+// MetricTracer traces cache latency within provider action
 type MetricTracer interface {
 	CacheLatency(name, action string, n time.Duration)
+}
+
+// BackendTracer traces backend latency within provider action
+type BackendTracer interface {
+	BackendLatency(route string, code int, n time.Duration)
 }
 
 // MetricCounter traces counters within provider action

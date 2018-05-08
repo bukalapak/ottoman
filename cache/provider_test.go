@@ -1,6 +1,8 @@
 package cache_test
 
 import (
+	"fmt"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -73,15 +75,19 @@ func TestProvider_Fetch(t *testing.T) {
 	q := NewRequest(h.URL)
 	r := NewReader()
 	n := NewCounter()
+	z := NewTracer()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
 	c.(*cache.Engine).Counter = n
+	c.(*cache.Engine).Tracer = z
 
 	b, err := c.Fetch("zoo", q)
 	assert.Nil(t, err)
 	assert.Equal(t, `{"zoo":"zac"}`, string(b))
 	assert.Equal(t, 0, n.C)
 	assert.Equal(t, 1, n.B)
+	assert.Equal(t, 1, len(z.M))
+	assert.Contains(t, z.M[0], "/zoo::200")
 }
 
 func TestProvider_Fetch_badKey(t *testing.T) {
@@ -149,9 +155,11 @@ func TestProvider_FetchMulti(t *testing.T) {
 	q := NewRequest(h.URL)
 	r := NewReader()
 	n := NewCounter()
+	z := NewTracer()
 	c := cache.NewProvider(r)
 	c.(*cache.Engine).Resolver = NewResolver()
 	c.(*cache.Engine).Counter = n
+	c.(*cache.Engine).Tracer = z
 
 	keys := []string{
 		"api:foo",
@@ -164,7 +172,9 @@ func TestProvider_FetchMulti(t *testing.T) {
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["zoo"])
 	assert.Empty(t, m["foo"])
 	assert.Equal(t, 0, n.C)
-	assert.Equal(t, 2, n.B)
+	assert.Equal(t, 1, n.B)
+	assert.Equal(t, 1, len(z.M))
+	assert.Contains(t, z.M[0], "/zoo::200")
 }
 
 func TestProvider_FetchMulti_namespace(t *testing.T) {
@@ -314,4 +324,21 @@ func (c *simpleCounter) IncrBackendCounter() {
 	defer c.mu.Unlock()
 
 	c.B++
+}
+
+type simpleTracer struct {
+	mu sync.Mutex
+	M  []string
+}
+
+func NewTracer() *simpleTracer {
+	return &simpleTracer{}
+}
+
+func (c *simpleTracer) BackendLatency(route string, code int, n time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.M = append(c.M, fmt.Sprintf("%s::%d::%s", route, code, n.String()))
+	sort.Strings(c.M)
 }

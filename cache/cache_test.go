@@ -100,7 +100,7 @@ func (m *Match) Resolve(key string, r *http.Request) (*http.Request, error) {
 		req.URL.Path = "/" + key
 	case "api:zoo":
 		req.URL.Path = "/zoo"
-	case "err":
+	default:
 		return nil, errors.New("unknown cache")
 	}
 
