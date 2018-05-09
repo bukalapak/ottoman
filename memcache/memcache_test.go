@@ -39,7 +39,7 @@ func TestMemcache(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, `{"foo":"bar"}`, string(b))
 
-		m.Assert(t, "Memcached", "Get")
+		m.Assert(t, "Memcached", "Read")
 
 		cleanFixtures(client)
 	})
@@ -110,7 +110,7 @@ func TestMemcache(t *testing.T) {
 			}
 		}
 
-		m.Assert(t, "Memcached", "GetMulti")
+		m.Assert(t, "Memcached", "ReadMulti")
 
 		cleanFixtures(client)
 	})

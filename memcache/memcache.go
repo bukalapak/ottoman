@@ -54,7 +54,7 @@ func (c *Memcache) Read(key string) ([]byte, error) {
 		return nil, err
 	}
 
-	c.metric.CacheLatency(c.Name(), "Get", time.Since(now))
+	c.metric.CacheLatency(c.Name(), "Read", time.Since(now))
 
 	return c.readValue(item.Value)
 }
@@ -68,7 +68,7 @@ func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
 		return map[string][]byte{}, err
 	}
 
-	c.metric.CacheLatency(c.Name(), "GetMulti", time.Since(now))
+	c.metric.CacheLatency(c.Name(), "ReadMulti", time.Since(now))
 
 	z := make(map[string][]byte, len(m))
 

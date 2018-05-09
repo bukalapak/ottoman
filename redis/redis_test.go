@@ -77,7 +77,7 @@ func testReadMetric(t *testing.T, client Connector) {
 
 	testRead(t, client, c)
 
-	m.Assert(t, "Redis", "Get")
+	m.Assert(t, "Redis", "Read")
 }
 
 func testReadClusterMetric(t *testing.T, client Connector) {
@@ -86,7 +86,7 @@ func testReadClusterMetric(t *testing.T, client Connector) {
 
 	testRead(t, client, c)
 
-	m.Assert(t, "Redis Cluster", "Get")
+	m.Assert(t, "Redis Cluster", "Read")
 }
 
 func testRead(t *testing.T, client Connector, c *redis.Redis) {
@@ -111,7 +111,7 @@ func testReadMultiMetric(t *testing.T, client Connector) {
 
 	testReadMulti(t, client, c)
 
-	m.Assert(t, "Redis", "MGet")
+	m.Assert(t, "Redis", "ReadMulti")
 }
 
 func testReadMultiClusterMetric(t *testing.T, client Connector) {
@@ -120,7 +120,7 @@ func testReadMultiClusterMetric(t *testing.T, client Connector) {
 
 	testReadMulti(t, client, c)
 
-	m.Assert(t, "Redis Cluster", "MGet")
+	m.Assert(t, "Redis Cluster", "ReadMulti")
 }
 
 func testReadMulti(t *testing.T, client Connector, c *redis.Redis) {

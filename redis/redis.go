@@ -74,7 +74,7 @@ func (c *Redis) Read(key string) ([]byte, error) {
 		return nil, cmd.Err()
 	}
 
-	c.metric.CacheLatency(c.Name(), "Get", time.Since(now))
+	c.metric.CacheLatency(c.Name(), "Read", time.Since(now))
 
 	return cmd.Bytes()
 }
@@ -90,7 +90,7 @@ func (c *Redis) ReadMulti(keys []string) (map[string][]byte, error) {
 		return nil, cmd.Err()
 	}
 
-	c.metric.CacheLatency(c.Name(), "MGet", time.Since(now))
+	c.metric.CacheLatency(c.Name(), "ReadMulti", time.Since(now))
 
 	for i, k := range keys {
 		v, ok := cmd.Val()[i].(string)
