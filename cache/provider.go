@@ -1,13 +1,13 @@
 package cache
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
+	multierror "github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -79,34 +79,39 @@ func (s *Engine) Fetch(key string, r *http.Request) ([]byte, error) {
 
 func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
 	ks := s.NormalizeMulti(keys)
-	mb := make(map[string][]byte, len(ks))
-	mx := &sync.Mutex{}
-
-	var wg sync.WaitGroup
+	mb := make(map[string][]byte)
+	ec := make(chan error)
+	bc := make(chan map[string][]byte)
 
 	for _, k := range ks {
-		wg.Add(1)
-
 		go func(key string) {
-			defer wg.Done()
-
 			z, err := s.Fetch(key, r)
 			if err != nil {
-				s.Logger.Info("ottoman/cache",
-					zap.String("method", "Fetch"),
-					zap.String("error", err.Error()),
-				)
+				ec <- errors.Wrap(err, key)
+			} else {
+				bc <- map[string][]byte{key: z}
 			}
-
-			mx.Lock()
-			mb[key] = z
-			mx.Unlock()
 		}(k)
 	}
 
-	wg.Wait()
+	var mrr *multierror.Error
 
-	return mb, nil
+	for i := 0; i < len(ks); i++ {
+		select {
+		case kb := <-bc:
+			for k, b := range kb {
+				mb[k] = b
+			}
+		case err := <-ec:
+			mrr = multierror.Append(mrr, err)
+			s.Logger.Info("ottoman/cache",
+				zap.String("method", "Fetch"),
+				zap.String("error", err.Error()),
+			)
+		}
+	}
+
+	return mb, mrr.ErrorOrNil()
 }
 
 func (s *Engine) ReadFetch(key string, r *http.Request) ([]byte, error) {
@@ -132,13 +137,13 @@ func (s *Engine) ReadFetchMulti(keys []string, r *http.Request) (map[string][]by
 
 	cs := s.cachedKeys(mb, keys)
 	us := s.uncachedKeys(cs, keys)
-	mx, _ := s.FetchMulti(us, r)
+	mx, err := s.FetchMulti(us, r)
 
 	for k, v := range mx {
 		mb[k] = v
 	}
 
-	return mb, nil
+	return mb, err
 }
 
 func (s *Engine) Normalize(key string) string {

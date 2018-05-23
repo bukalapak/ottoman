@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bukalapak/ottoman/cache"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -167,10 +168,14 @@ func TestProvider_FetchMulti(t *testing.T) {
 	}
 
 	m, err := c.FetchMulti(keys, q)
-	assert.Nil(t, err)
-	assert.Len(t, m, 2)
+	assert.NotNil(t, err)
+
+	wrr := err.(*multierror.Error)
+	assert.Len(t, wrr.Errors, 1)
+	assert.Equal(t, "foo: unknown cache", wrr.Errors[0].Error())
+	assert.Len(t, m, 1)
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["zoo"])
-	assert.Empty(t, m["foo"])
+
 	assert.Equal(t, 0, n.C)
 	assert.Equal(t, 1, n.B)
 	assert.Equal(t, 1, len(z.M))
@@ -193,10 +198,13 @@ func TestProvider_FetchMulti_namespace(t *testing.T) {
 	}
 
 	m, err := c.FetchMulti(keys, q)
-	assert.Nil(t, err)
-	assert.Len(t, m, 2)
+	assert.NotNil(t, err)
+
+	wrr := err.(*multierror.Error)
+	assert.Len(t, wrr.Errors, 1)
+	assert.Equal(t, "api:foo: unknown cache", wrr.Errors[0].Error())
+	assert.Len(t, m, 1)
 	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["api:zoo"])
-	assert.Empty(t, m["api:foo"])
 }
 
 func TestProvider_FetchMulti_failure(t *testing.T) {
@@ -215,9 +223,12 @@ func TestProvider_FetchMulti_failure(t *testing.T) {
 	}
 
 	m, err := c.FetchMulti(keys, q)
-	assert.Nil(t, err)
-	assert.Empty(t, m["foo"])
-	assert.Empty(t, m["zoo"])
+	assert.NotNil(t, err)
+	assert.Empty(t, m)
+
+	assert.Len(t, err.(*multierror.Error).Errors, 2)
+	assert.Contains(t, multierror.Flatten(err).Error(), "/zoo: Connection failure")
+	assert.Contains(t, multierror.Flatten(err).Error(), "foo: unknown cache")
 }
 
 func TestProvider_Namespace(t *testing.T) {
@@ -297,9 +308,12 @@ func TestProvider_ReadFetchMulti_failure(t *testing.T) {
 	}
 
 	m, err := c.ReadFetchMulti(keys, q)
-	assert.Nil(t, err)
-	assert.Empty(t, m["foo"])
-	assert.Empty(t, m["zoo"])
+	assert.NotNil(t, err)
+	assert.Empty(t, m)
+
+	assert.Len(t, err.(*multierror.Error).Errors, 2)
+	assert.Contains(t, multierror.Flatten(err).Error(), "/zoo: Connection failure")
+	assert.Contains(t, multierror.Flatten(err).Error(), "foo: unknown cache")
 }
 
 type simpleCounter struct {
