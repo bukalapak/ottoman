@@ -56,6 +56,11 @@ func (n *Node) Type() lzjson.Type {
 	return n.node.Type()
 }
 
+// IsValid checks whether the node is valid JSON value.
+func (n *Node) IsValid() bool {
+	return n.Type() != lzjson.TypeError
+}
+
 // Get gets object's inner value.
 // Only works with Object value type.
 func (n *Node) Get(key string) *Node {

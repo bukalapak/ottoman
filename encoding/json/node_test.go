@@ -13,6 +13,7 @@ func TestNode(t *testing.T) {
 	s := `{"data":{"hello":"world","items":[1,2,3]},"meta":{"code":200}}`
 	n := json.NewNode(strings.NewReader(s))
 
+	assert.True(t, n.IsValid())
 	assert.Equal(t, []byte(s), n.Bytes())
 
 	assert.Contains(t, n.Get("data").Keys(), "hello")
@@ -38,4 +39,11 @@ func TestNode(t *testing.T) {
 
 	v := n.Get("unknown")
 	assert.NotNil(t, v.Error())
+}
+
+func TestNode_invalid(t *testing.T) {
+	s := "hello!"
+	n := json.NewNode(strings.NewReader(s))
+
+	assert.False(t, n.IsValid())
 }
