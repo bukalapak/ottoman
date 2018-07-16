@@ -10,9 +10,9 @@ import (
 	"github.com/bukalapak/ottoman/internal/_qtest"
 	"github.com/bukalapak/ottoman/redis"
 	envx "github.com/bukalapak/ottoman/x/env"
+	redisc "github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/subosito/gotenv"
-	redisc "gopkg.in/redis.v3"
 )
 
 type Connector interface {
@@ -174,14 +174,14 @@ func testExpire(t *testing.T, client Connector, c *redis.Redis) {
 func NewRedisConnector() Connector {
 	return redisc.NewClient(&redisc.Options{
 		Addr: os.Getenv("REDIS_ADDR"),
-		DB:   int64(envx.Int("REDIS_DB")),
+		DB:   envx.Int("REDIS_DB"),
 	})
 }
 
 func NewRedis(m cache.MetricTracer) *redis.Redis {
 	opts := &redis.Option{
 		Addrs: []string{os.Getenv("REDIS_ADDR")},
-		DB:    int64(envx.Int("REDIS_DB")),
+		DB:    envx.Int("REDIS_DB"),
 	}
 
 	if m != nil {
@@ -200,7 +200,7 @@ func NewRedisClusterConnector() Connector {
 }
 
 func NewRedisCluster(m cache.MetricTracer) *redis.Redis {
-	opts := &redis.Option{Addrs: clusterAddrs()}
+	opts := &redis.Option{Addrs: clusterAddrs(), ReadSlave: true}
 
 	if m != nil {
 		opts.Metric = m

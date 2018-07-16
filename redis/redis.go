@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bukalapak/ottoman/cache"
-	redisc "gopkg.in/redis.v3"
+	redisc "github.com/go-redis/redis"
 )
 
 // Option represents configurable configuration for redis client.
@@ -16,7 +16,10 @@ type Option struct {
 
 	// A database to be selected after connecting to server.
 	// Redis Cluster ignores this value.
-	DB int64
+	DB int
+
+	// Cluster specific flag to enable read-only commands on slave nodes.
+	ReadSlave bool
 }
 
 type connector interface {
@@ -62,6 +65,7 @@ func New(opts *Option) *Redis {
 		client: redisc.NewClusterClient(&redisc.ClusterOptions{
 			Addrs:    opts.Addrs,
 			Password: opts.Password,
+			ReadOnly: opts.ReadSlave,
 		}),
 	}
 }
