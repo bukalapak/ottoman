@@ -200,7 +200,7 @@ func NewRedisClusterConnector() Connector {
 }
 
 func NewRedisCluster(m cache.MetricTracer) *redis.Redis {
-	opts := &redis.Option{Addrs: clusterAddrs(), ReadSlave: true}
+	opts := &redis.Option{Addrs: clusterAddrs(), ReadOnly: true}
 
 	if m != nil {
 		opts.Metric = m
