@@ -56,9 +56,48 @@ func (n *Node) Type() lzjson.Type {
 	return n.node.Type()
 }
 
+// IsObject checks whether the node is valid JSON object.
+func (n *Node) IsObject() bool {
+	return n.Type() == lzjson.TypeObject
+}
+
+// IsArray checks whether the node is valid JSON array.
+func (n *Node) IsArray() bool {
+	return n.Type() == lzjson.TypeArray
+}
+
+// IsString checks whether the node is valid JSON string.
+func (n *Node) IsString() bool {
+	return n.Type() == lzjson.TypeString
+}
+
+// IsNumber checks whether the node is valid JSON number.
+func (n *Node) IsNumber() bool {
+	return n.Type() == lzjson.TypeNumber
+}
+
+// IsBool checks whether the node is valid JSON boolean.
+func (n *Node) IsBool() bool {
+	return n.Type() == lzjson.TypeBool
+}
+
+// IsNull checks whether the node is valid JSON null.
+func (n *Node) IsNull() bool {
+	return n.Type() == lzjson.TypeNull
+}
+
 // IsValid checks whether the node is valid JSON value.
 func (n *Node) IsValid() bool {
 	return n.Type() != lzjson.TypeError
+}
+
+// IsEmpty checks whether the node is having empty value.
+func (n *Node) IsEmpty() bool {
+	if n.IsObject() {
+		return len(n.Keys()) == 0
+	}
+
+	return n.Len() == 0
 }
 
 // Get gets object's inner value.

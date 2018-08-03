@@ -30,6 +30,25 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, lzjson.TypeArray, n.Get("data").Get("items").Type())
 	assert.Equal(t, lzjson.TypeNumber, n.Get("meta").Get("code").Type())
 
+	z := `{"obj":{},"arr":[],"str":"","num":0,"nil":null,"boo":true}`
+	w := json.NewNode(strings.NewReader(z))
+
+	assert.True(t, w.IsValid())
+	assert.True(t, w.Get("obj").IsObject())
+	assert.True(t, w.Get("obj").IsEmpty())
+
+	assert.True(t, w.Get("arr").IsArray())
+	assert.True(t, w.Get("arr").IsEmpty())
+
+	assert.True(t, w.Get("str").IsString())
+	assert.True(t, w.Get("str").IsEmpty())
+
+	assert.True(t, w.Get("num").IsNumber())
+	assert.False(t, w.Get("num").IsEmpty())
+
+	assert.True(t, w.Get("nil").IsNull())
+	assert.True(t, w.Get("boo").IsBool())
+
 	m := map[string]int{}
 	x := map[string]int{"code": 200}
 
