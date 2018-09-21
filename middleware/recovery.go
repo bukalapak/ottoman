@@ -12,7 +12,8 @@ type Notifier interface {
 }
 
 type Recovery struct {
-	agent Notifier
+	Logger *zap.Logger
+	agent  Notifier
 }
 
 func NewRecovery(agent Notifier) *Recovery {
@@ -23,7 +24,7 @@ func (v *Recovery) Handler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				log := LoggerFromContext(r.Context())
+				log := LoggerFromContext(r.Context(), v.Logger)
 				log.Error("ottoman:middleware/recovery",
 					zap.String("stack_trace", string(debug.Stack())),
 				)

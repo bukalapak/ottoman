@@ -2,31 +2,27 @@ package middleware_test
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/bukalapak/ottoman/middleware"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
-
-func TestLogger(t *testing.T) {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		log := middleware.LoggerFromContext(r.Context())
-
-		assert.False(t, log.Core().Enabled(zapcore.DebugLevel))
-		assert.True(t, log.Core().Enabled(zapcore.InfoLevel))
-	}
-
-	req, _ := http.NewRequest("GET", "/", nil)
-	rec := httptest.NewRecorder()
-	log := middleware.NewLogger(middleware.JSONLogger())
-	log.Handler(http.HandlerFunc(fn)).ServeHTTP(rec, req)
-}
 
 func TestLoggerFromContext(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
-	log := middleware.LoggerFromContext(req.Context())
-	assert.Equal(t, zap.New(nil), log)
+	ctx := middleware.NewRequestIDContext(req.Context(), "request-id")
+
+	core, recorded := observer.New(zapcore.InfoLevel)
+	log1 := zap.New(core)
+	log2 := middleware.LoggerFromContext(ctx, log1)
+	log2.Info("Hello world!")
+
+	assert.Equal(t, 1, recorded.Len())
+
+	entry := recorded.All()[0]
+	assert.Equal(t, "Hello world!", entry.Message)
+	assert.Equal(t, "request-id", entry.ContextMap()["request_id"])
 }
