@@ -20,7 +20,6 @@ func TestHeader(t *testing.T) {
 		"application/msgpack; charset=utf-8": {MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{"charset": "utf-8"}},
 		"application/vnd.example.v4+json":    {MediaType: "application/json", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
 		"application/vnd.example.v4+msgpack": {MediaType: "application/msgpack", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
-		"application/vnd.example.v4+text":    {MediaType: "text/plain", Quality: 1.0, Parameters: map[string]string{"version": "v4", "vendor": "example"}},
 	}
 
 	for s, x := range data {
@@ -68,9 +67,8 @@ func TestHeader_contentTypes(t *testing.T) {
 		"application/msgpack, application/json": "application/msgpack",
 		"application/vnd.example.v4+json":       "application/json",
 		"application/vnd.example.v4+msgpack":    "application/msgpack",
-		"application/vnd.example.v4+text":       "text/plain",
 		"text/plain, text/html":                 "text/plain",
-		"*/*": "*/*",
+		"*/*":                                   "*/*",
 	}
 
 	for k, x := range data {
