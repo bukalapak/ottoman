@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
 type Notifier interface {
@@ -12,7 +12,7 @@ type Notifier interface {
 }
 
 type Recovery struct {
-	Logger *zap.Logger
+	Logger zerolog.Logger
 	agent  Notifier
 }
 
@@ -25,9 +25,9 @@ func (v *Recovery) Handler(h http.Handler) http.Handler {
 		defer func() {
 			if rec := recover(); rec != nil {
 				log := LoggerFromContext(r.Context(), v.Logger)
-				log.Error("ottoman:middleware/recovery",
-					zap.String("stack_trace", string(debug.Stack())),
-				)
+				log.Error().
+					Str("stack_trace", string(debug.Stack())).
+					Msg("ottoman:middleware/recovery")
 
 				v.agent.Notify(rec, debug.Stack())
 				w.WriteHeader(http.StatusInternalServerError)

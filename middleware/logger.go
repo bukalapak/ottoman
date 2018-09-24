@@ -3,16 +3,9 @@ package middleware
 import (
 	"context"
 
-	"github.com/bukalapak/ottoman/logger"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
-func LoggerFromContext(ctx context.Context, log *zap.Logger) *zap.Logger {
-	if log == nil {
-		log = logger.Discard()
-	}
-
-	return log.With(
-		zap.String("request_id", RequestIDFromContext(ctx)),
-	)
+func LoggerFromContext(ctx context.Context, log zerolog.Logger) zerolog.Logger {
+	return log.With().Str("request_id", RequestIDFromContext(ctx)).Logger()
 }
