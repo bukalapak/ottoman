@@ -57,6 +57,7 @@ func TestHeader_wildcard(t *testing.T) {
 
 func TestHeader_contentTypes(t *testing.T) {
 	data := map[string]string{
+		"*/*":                                   "*/*",
 		"application/json":                      "application/json",
 		"application/json, */*":                 "application/json",
 		"application/json, text/html":           "application/json",
@@ -68,7 +69,6 @@ func TestHeader_contentTypes(t *testing.T) {
 		"application/vnd.example.v4+json":       "application/json",
 		"application/vnd.example.v4+msgpack":    "application/msgpack",
 		"text/plain, text/html":                 "text/plain",
-		"*/*":                                   "*/*",
 	}
 
 	for k, x := range data {
