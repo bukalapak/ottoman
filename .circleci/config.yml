@@ -11,6 +11,7 @@ jobs:
       - checkout
       - run: go version
       - run: go get -t ./...
-      - run: make check && make coverage
+      - run: make check
+      - run: make coverage
       - run: bash <(curl -s https://codecov.io/bash)
 
