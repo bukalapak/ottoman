@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bukalapak/ottoman/logger"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
 type Engine struct {
@@ -19,7 +20,7 @@ type Engine struct {
 	Transport http.RoundTripper
 	Counter   MetricCounter
 	Tracer    BackendTracer
-	Logger    *zap.Logger
+	Logger    zerolog.Logger
 }
 
 func NewProvider(r Reader) Provider {
@@ -29,7 +30,7 @@ func NewProvider(r Reader) Provider {
 		Tracer:    &noopTracer{},
 		Timeout:   30 * time.Second,
 		Transport: http.DefaultTransport,
-		Logger:    zap.New(nil),
+		Logger:    logger.Discard(),
 	}
 }
 
@@ -104,10 +105,8 @@ func (s *Engine) FetchMulti(keys []string, r *http.Request) (map[string][]byte, 
 			}
 		case err := <-ec:
 			mrr = multierror.Append(mrr, err)
-			s.Logger.Info("ottoman/cache",
-				zap.String("method", "Fetch"),
-				zap.String("error", err.Error()),
-			)
+
+			s.Logger.Error().Str("method", "Fetch").Msg(err.Error())
 		}
 	}
 
@@ -125,10 +124,7 @@ func (s *Engine) ReadFetch(key string, r *http.Request) ([]byte, error) {
 func (s *Engine) ReadFetchMulti(keys []string, r *http.Request) (map[string][]byte, error) {
 	mb, err := s.ReadMulti(keys)
 	if err != nil {
-		s.Logger.Info("ottoman/cache",
-			zap.String("method", "ReadMulti"),
-			zap.String("error", err.Error()),
-		)
+		s.Logger.Error().Str("method", "ReadMulti").Msg(err.Error())
 	}
 
 	if len(mb) == 0 {
@@ -170,10 +166,10 @@ func (s *Engine) fetchRequest(r *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	s.Logger.Info("ottoman/cache",
-		zap.String("request_url", r.URL.String()),
-		zap.Int("request_status", resp.StatusCode),
-	)
+	s.Logger.Info().
+		Str("request_url", r.URL.String()).
+		Int("request_status", resp.StatusCode).
+		Msg(resp.Status)
 
 	s.Tracer.BackendLatency(r.URL.String(), resp.StatusCode, time.Since(now))
 
