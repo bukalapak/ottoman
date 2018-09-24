@@ -1,14 +1,15 @@
 SHELL := /bin/bash
 
-dep-metalinter:
-	@go get -u gopkg.in/alecthomas/gometalinter.v2
-	@gometalinter.v2 --install > /dev/null
+export PATH := $(shell pwd)/bin:${PATH}
+
+tool-metalinter:
+	@./scripts/install-metalinter.sh
 check: check-metalinter
-check-metalinter: dep-metalinter
-	@gometalinter.v2 --fast --config=metalinter.json ./...
+check-metalinter: tool-metalinter
+	./bin/gometalinter --fast --config=metalinter.json ./...
 check-all: check-all-metalinter
-check-all-metalinter: dep-metalinter
-	@gometalinter.v2 --config=metalinter.json ./...
+check-all-metalinter: tool-metalinter
+	./bin/gometalinter --config=metalinter.json ./...
 update-x-http:
 	./.scripts/x-http-updater.sh
 test:
