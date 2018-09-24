@@ -1,41 +1,19 @@
 package logger
 
 import (
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"os"
+
+	"github.com/rs/zerolog"
 )
 
-func JSON() *zap.Logger {
-	n := zapcore.EncoderConfig{
-		TimeKey:        "@timestamp",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "message",
-		StacktraceKey:  "stacktrace",
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.SecondsDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-	}
-
-	c := zap.Config{
-		Level:       zap.NewAtomicLevel(),
-		Development: false,
-		Sampling: &zap.SamplingConfig{
-			Initial:    100,
-			Thereafter: 100,
-		},
-		Encoding:         "json",
-		EncoderConfig:    n,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-
-	log, _ := c.Build()
-	return log
+func init() {
+	zerolog.TimestampFieldName = "@timestamp"
 }
 
-func Discard() *zap.Logger {
-	return zap.NewNop()
+func JSON() zerolog.Logger {
+	return zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
+}
+
+func Discard() zerolog.Logger {
+	return zerolog.Nop()
 }
