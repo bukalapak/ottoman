@@ -33,6 +33,8 @@ func TestRedis(t *testing.T) {
 		c := NewRedis(nil)
 
 		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis", c.Name()) })
+		t.Run("Write", func(t *testing.T) { testWrite(t, client, c) })
+		t.Run("Write-Metric", func(t *testing.T) { testWriteMetric(t, client) })
 		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
 		t.Run("Read-Metric", func(t *testing.T) { testReadMetric(t, client) })
 		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
@@ -46,6 +48,8 @@ func TestRedis(t *testing.T) {
 		c := NewRedisCluster(nil)
 
 		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis Cluster", c.Name()) })
+		t.Run("Write", func(t *testing.T) { testWrite(t, client, c) })
+		t.Run("Write-Metric", func(t *testing.T) { testWriteClusterMetric(t, client) })
 		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
 		t.Run("Read-Metric", func(t *testing.T) { testReadClusterMetric(t, client) })
 		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
@@ -69,6 +73,31 @@ func TestRedis(t *testing.T) {
 	})
 
 	os.Clearenv()
+}
+
+func testWrite(t *testing.T, client Connector, c *redis.Redis) {
+	err := c.Write("foo", []byte("bar"), 10*time.Second)
+	assert.Nil(t, err)
+
+	cleanFixtures(client)
+}
+
+func testWriteMetric(t *testing.T, client Connector) {
+	m := NewMetric()
+	c := NewRedis(m)
+
+	testWrite(t, client, c)
+
+	m.Assert(t, "Redis", "Write")
+}
+
+func testWriteClusterMetric(t *testing.T, client Connector) {
+	m := NewMetric()
+	c := NewRedisCluster(m)
+
+	testWrite(t, client, c)
+
+	m.Assert(t, "Redis Cluster", "Write")
 }
 
 func testReadMetric(t *testing.T, client Connector) {

@@ -23,6 +23,7 @@ type Option struct {
 }
 
 type connector interface {
+	Set(key string, value interface{}, expiration time.Duration) *redisc.StatusCmd
 	Get(key string) *redisc.StringCmd
 	MGet(keys ...string) *redisc.SliceCmd
 	Incr(key string) *redisc.IntCmd
@@ -68,6 +69,16 @@ func New(opts *Option) *Redis {
 			ReadOnly: opts.ReadOnly,
 		}),
 	}
+}
+
+// Write writes the item for given key.
+func (c *Redis) Write(key string, value []byte, expiration time.Duration) error {
+	now := time.Now()
+	cmd := c.client.Set(key, value, expiration)
+
+	c.metric.CacheLatency(c.Name(), "Write", time.Since(now))
+
+	return cmd.Err()
 }
 
 // Read reads the item for given key.
