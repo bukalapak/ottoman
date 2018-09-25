@@ -26,6 +26,25 @@ func TestMemcache(t *testing.T) {
 		assert.Equal(t, "Memcached", c.Name())
 	})
 
+	t.Run("Write", func(t *testing.T) {
+		m := NewMetric()
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: false,
+			Metric:   m,
+		})
+
+		err := c.Write("foo", []byte("bar"), 10*time.Second)
+		assert.Nil(t, err)
+
+		item, err := client.Get("foo")
+		assert.Nil(t, err)
+		assert.Equal(t, []byte("bar"), item.Value)
+
+		m.Assert(t, "Memcached", "Write")
+
+		cleanFixtures(client)
+	})
+
 	t.Run("Read", func(t *testing.T) {
 		loadUncompressedFixtures(client)
 

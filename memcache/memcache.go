@@ -45,6 +45,22 @@ func New(ss []string, option Option) *Memcache {
 	return &Memcache{client: c, metric: m, option: option}
 }
 
+// Write writes the item for given key.
+func (c *Memcache) Write(key string, value []byte, expiration time.Duration) error {
+	item := &memcache.Item{
+		Key:        key,
+		Value:      value,
+		Expiration: int32(expiration.Seconds()),
+	}
+
+	now := time.Now()
+	err := c.client.Set(item)
+
+	c.metric.CacheLatency(c.Name(), "Write", time.Since(now))
+
+	return err
+}
+
 // Read reads the item for given key.
 // It's automatically decode item.Value depending on the client option.
 func (c *Memcache) Read(key string) ([]byte, error) {
