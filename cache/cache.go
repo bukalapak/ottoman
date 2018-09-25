@@ -8,11 +8,21 @@ import (
 	"time"
 )
 
-// Reader is the interface for cache backend implementation.
+// Writer is the interface for cache backend implementation for writing cache data.
+type Writer interface {
+	Write(key string, value []byte, expiration time.Duration) error
+}
+
+// Reader is the interface for cache backend implementation for reading cache data.
 type Reader interface {
 	Name() string
 	Read(key string) ([]byte, error)
 	ReadMulti(keys []string) (map[string][]byte, error)
+}
+
+type WriteReader interface {
+	Writer
+	Reader
 }
 
 // Fetcher is the interface for getting cache key from cache engine as well as to remote backend
@@ -41,6 +51,7 @@ type Normalizer interface {
 
 // Provider wraps several interfaces with additional identifier for getting information about the implementation.
 type Provider interface {
+	Writer
 	Reader
 	Fetcher
 	ReadFetcher

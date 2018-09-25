@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/bukalapak/ottoman/cache"
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ type Sample struct {
 	data map[string]string
 }
 
-func NewReader() cache.Reader {
+func NewReader() cache.WriteReader {
 	return &Sample{data: map[string]string{
 		"foo":     `{"foo":"bar"}`,
 		"fox":     `{"fox":"baz"}`,
@@ -46,6 +47,11 @@ func NewReader() cache.Reader {
 
 func (m *Sample) Name() string {
 	return "cache/reader"
+}
+
+func (m *Sample) Write(key string, value []byte, expiration time.Duration) error {
+	m.data[key] = string(value)
+	return nil
 }
 
 func (m *Sample) Read(key string) ([]byte, error) {
@@ -68,6 +74,10 @@ func (m *Sample) ReadMulti(keys []string) (map[string][]byte, error) {
 }
 
 type XSample struct{}
+
+func (m *XSample) Write(key string, value []byte, expiration time.Duration) error {
+	return errors.New("example error from Write")
+}
 
 func (m *XSample) Read(key string) ([]byte, error) {
 	return nil, errors.New("example error from Read")

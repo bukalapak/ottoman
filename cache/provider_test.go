@@ -19,6 +19,26 @@ func TestProvider_Name(t *testing.T) {
 	assert.Equal(t, r.Name(), c.Name())
 }
 
+func TestProvider_Write(t *testing.T) {
+	r := NewReader()
+	c := cache.NewProvider(r)
+
+	err := c.Write("foo", []byte("bar"), 10*time.Second)
+	assert.Nil(t, err)
+
+	v, ok := r.(*Sample).data["foo"]
+	assert.True(t, ok)
+	assert.Equal(t, "bar", v)
+}
+
+func TestProvider_Write_failure(t *testing.T) {
+	r := &XSample{}
+	c := cache.NewProvider(r)
+
+	err := c.Write("foo", []byte("bar"), 10*time.Second)
+	assert.NotNil(t, err)
+}
+
 func TestProvider_Read(t *testing.T) {
 	r := NewReader()
 	n := NewCounter()

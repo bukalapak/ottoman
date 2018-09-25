@@ -13,7 +13,7 @@ import (
 )
 
 type Engine struct {
-	engine    Reader
+	engine    WriteReader
 	Prefix    string
 	Resolver  Resolver
 	Timeout   time.Duration
@@ -23,7 +23,7 @@ type Engine struct {
 	Logger    zerolog.Logger
 }
 
-func NewProvider(r Reader) Provider {
+func NewProvider(r WriteReader) Provider {
 	return &Engine{
 		engine:    r,
 		Counter:   &noopCounter{},
@@ -42,6 +42,11 @@ func (s *Engine) Name() string {
 // Namespace returns cache Prefix
 func (s *Engine) Namespace() string {
 	return s.Prefix
+}
+
+// Write writes cache data to the cache backend based on key supplied.
+func (s *Engine) Write(key string, value []byte, expiration time.Duration) error {
+	return s.engine.Write(key, value, expiration)
 }
 
 // Read reads cache data on the cache backend based on key supplied.
