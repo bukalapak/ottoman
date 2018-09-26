@@ -9,7 +9,6 @@ import (
 	"time"
 
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
-	"github.com/bukalapak/ottoman/internal/_qtest"
 	"github.com/bukalapak/ottoman/memcache"
 	"github.com/stretchr/testify/assert"
 	"github.com/subosito/gotenv"
@@ -27,10 +26,8 @@ func TestMemcache(t *testing.T) {
 	})
 
 	t.Run("Write", func(t *testing.T) {
-		m := NewMetric()
 		c := memcache.New([]string{addr}, memcache.Option{
 			Compress: false,
-			Metric:   m,
 		})
 
 		err := c.Write("foo", []byte("bar"), 10*time.Second)
@@ -40,25 +37,19 @@ func TestMemcache(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, []byte("bar"), item.Value)
 
-		m.Assert(t, "Memcached", "Write")
-
 		cleanFixtures(client)
 	})
 
 	t.Run("Read", func(t *testing.T) {
 		loadUncompressedFixtures(client)
 
-		m := NewMetric()
 		c := memcache.New([]string{addr}, memcache.Option{
 			Compress: false,
-			Metric:   m,
 		})
 
 		b, err := c.Read("foo")
 		assert.Nil(t, err)
 		assert.Equal(t, `{"foo":"bar"}`, string(b))
-
-		m.Assert(t, "Memcached", "Read")
 
 		cleanFixtures(client)
 	})
@@ -102,10 +93,8 @@ func TestMemcache(t *testing.T) {
 	t.Run("ReadMulti", func(t *testing.T) {
 		loadCompressedFixtures(client)
 
-		m := NewMetric()
 		c := memcache.New([]string{addr}, memcache.Option{
 			Compress: true,
-			Metric:   m,
 		})
 
 		keys := []string{
@@ -128,8 +117,6 @@ func TestMemcache(t *testing.T) {
 				assert.Equal(t, []byte(`{"fox":"baz"}`), z[key])
 			}
 		}
-
-		m.Assert(t, "Memcached", "ReadMulti")
 
 		cleanFixtures(client)
 	})
@@ -197,8 +184,4 @@ func loadFixtures(client *gomemcache.Client, compress bool) {
 func cleanFixtures(client *gomemcache.Client) {
 	client.Delete("foo")
 	client.Delete("baz")
-}
-
-func NewMetric() *_qtest.CacheMetric {
-	return _qtest.NewCacheMetric()
 }
