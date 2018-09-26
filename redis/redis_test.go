@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bukalapak/ottoman/cache"
-	"github.com/bukalapak/ottoman/internal/_qtest"
 	"github.com/bukalapak/ottoman/redis"
 	envx "github.com/bukalapak/ottoman/x/env"
 	redisc "github.com/go-redis/redis"
@@ -30,30 +28,26 @@ func TestRedis(t *testing.T) {
 
 	t.Run("Standalone", func(t *testing.T) {
 		client := NewRedisConnector()
-		c := NewRedis(nil)
+		c := NewRedis()
 
 		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis", c.Name()) })
 		t.Run("Write", func(t *testing.T) { testWrite(t, client, c) })
-		t.Run("Write-Metric", func(t *testing.T) { testWriteMetric(t, client) })
 		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
-		t.Run("Read-Metric", func(t *testing.T) { testReadMetric(t, client) })
 		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
-		t.Run("ReadMulti", func(t *testing.T) { testReadMultiMetric(t, client) })
+		t.Run("ReadMulti", func(t *testing.T) { testReadMulti(t, client, c) })
 		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
 		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
 	})
 
 	t.Run("RedisCluster", func(t *testing.T) {
 		client := NewRedisClusterConnector()
-		c := NewRedisCluster(nil)
+		c := NewRedisCluster()
 
 		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis Cluster", c.Name()) })
 		t.Run("Write", func(t *testing.T) { testWrite(t, client, c) })
-		t.Run("Write-Metric", func(t *testing.T) { testWriteClusterMetric(t, client) })
 		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
-		t.Run("Read-Metric", func(t *testing.T) { testReadClusterMetric(t, client) })
 		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
-		t.Run("ReadMulti", func(t *testing.T) { testReadMultiClusterMetric(t, client) })
+		t.Run("ReadMulti", func(t *testing.T) { testReadMulti(t, client, c) })
 		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
 		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
 		t.Run("ReadMulti-CROSSSLOT", func(t *testing.T) {
@@ -82,42 +76,6 @@ func testWrite(t *testing.T, client Connector, c *redis.Redis) {
 	cleanFixtures(client)
 }
 
-func testWriteMetric(t *testing.T, client Connector) {
-	m := NewMetric()
-	c := NewRedis(m)
-
-	testWrite(t, client, c)
-
-	m.Assert(t, "Redis", "Write")
-}
-
-func testWriteClusterMetric(t *testing.T, client Connector) {
-	m := NewMetric()
-	c := NewRedisCluster(m)
-
-	testWrite(t, client, c)
-
-	m.Assert(t, "Redis Cluster", "Write")
-}
-
-func testReadMetric(t *testing.T, client Connector) {
-	m := NewMetric()
-	c := NewRedis(m)
-
-	testRead(t, client, c)
-
-	m.Assert(t, "Redis", "Read")
-}
-
-func testReadClusterMetric(t *testing.T, client Connector) {
-	m := NewMetric()
-	c := NewRedisCluster(m)
-
-	testRead(t, client, c)
-
-	m.Assert(t, "Redis Cluster", "Read")
-}
-
 func testRead(t *testing.T, client Connector, c *redis.Redis) {
 	loadFixtures(client)
 
@@ -132,24 +90,6 @@ func testReadUnknown(t *testing.T, c *redis.Redis) {
 	b, err := c.Read("boo")
 	assert.NotNil(t, err)
 	assert.Nil(t, b)
-}
-
-func testReadMultiMetric(t *testing.T, client Connector) {
-	m := NewMetric()
-	c := NewRedis(m)
-
-	testReadMulti(t, client, c)
-
-	m.Assert(t, "Redis", "ReadMulti")
-}
-
-func testReadMultiClusterMetric(t *testing.T, client Connector) {
-	m := NewMetric()
-	c := NewRedisCluster(m)
-
-	testReadMulti(t, client, c)
-
-	m.Assert(t, "Redis Cluster", "ReadMulti")
 }
 
 func testReadMulti(t *testing.T, client Connector, c *redis.Redis) {
@@ -207,14 +147,10 @@ func NewRedisConnector() Connector {
 	})
 }
 
-func NewRedis(m cache.MetricTracer) *redis.Redis {
+func NewRedis() *redis.Redis {
 	opts := &redis.Option{
 		Addrs: []string{os.Getenv("REDIS_ADDR")},
 		DB:    envx.Int("REDIS_DB"),
-	}
-
-	if m != nil {
-		opts.Metric = m
 	}
 
 	return redis.New(opts)
@@ -228,14 +164,8 @@ func NewRedisClusterConnector() Connector {
 	return redisc.NewClusterClient(&redisc.ClusterOptions{Addrs: clusterAddrs()})
 }
 
-func NewRedisCluster(m cache.MetricTracer) *redis.Redis {
-	opts := &redis.Option{Addrs: clusterAddrs(), ReadOnly: true}
-
-	if m != nil {
-		opts.Metric = m
-	}
-
-	return redis.New(opts)
+func NewRedisCluster() *redis.Redis {
+	return redis.New(&redis.Option{Addrs: clusterAddrs(), ReadOnly: true})
 }
 
 func loadFixtures(client Connector) {
@@ -257,8 +187,4 @@ func loadFixtures(client Connector) {
 
 func cleanFixtures(client Connector) {
 	client.Del("foo")
-}
-
-func NewMetric() *_qtest.CacheMetric {
-	return _qtest.NewCacheMetric()
 }

@@ -4,7 +4,6 @@ package redis
 import (
 	"time"
 
-	"github.com/bukalapak/ottoman/cache"
 	redisc "github.com/go-redis/redis"
 )
 
@@ -12,7 +11,6 @@ import (
 type Option struct {
 	Addrs    []string
 	Password string
-	Metric   cache.MetricTracer
 
 	// A database to be selected after connecting to server.
 	// Redis Cluster ignores this value.
@@ -35,23 +33,13 @@ type connector interface {
 type Redis struct {
 	client connector
 	name   string
-	metric cache.MetricTracer
 }
 
 // New returns a client to the redis server specified by Option.
 func New(opts *Option) *Redis {
-	var m cache.MetricTracer
-
-	if opts.Metric != nil {
-		m = opts.Metric
-	} else {
-		m = &noopTracer{}
-	}
-
 	if len(opts.Addrs) == 1 {
 		return &Redis{
-			name:   "Redis",
-			metric: m,
+			name: "Redis",
 			client: redisc.NewClient(&redisc.Options{
 				Addr:     opts.Addrs[0],
 				DB:       opts.DB,
@@ -61,8 +49,7 @@ func New(opts *Option) *Redis {
 	}
 
 	return &Redis{
-		name:   "Redis Cluster",
-		metric: m,
+		name: "Redis Cluster",
 		client: redisc.NewClusterClient(&redisc.ClusterOptions{
 			Addrs:    opts.Addrs,
 			Password: opts.Password,
@@ -73,23 +60,17 @@ func New(opts *Option) *Redis {
 
 // Write writes the item for given key.
 func (c *Redis) Write(key string, value []byte, expiration time.Duration) error {
-	now := time.Now()
 	cmd := c.client.Set(key, value, expiration)
-
-	c.metric.CacheLatency(c.Name(), "Write", time.Since(now))
 
 	return cmd.Err()
 }
 
 // Read reads the item for given key.
 func (c *Redis) Read(key string) ([]byte, error) {
-	now := time.Now()
 	cmd := c.client.Get(key)
 	if cmd.Err() != nil {
 		return nil, cmd.Err()
 	}
-
-	c.metric.CacheLatency(c.Name(), "Read", time.Since(now))
 
 	return cmd.Bytes()
 }
@@ -97,15 +78,12 @@ func (c *Redis) Read(key string) ([]byte, error) {
 // ReadMulti is a batch version of Read.
 // The returned map have exact length as provided keys. For cache miss, an empty byte will be returned.
 func (c *Redis) ReadMulti(keys []string) (map[string][]byte, error) {
-	now := time.Now()
 	cmd := c.client.MGet(keys...)
 	z := make(map[string][]byte)
 
 	if cmd.Err() != nil {
 		return nil, cmd.Err()
 	}
-
-	c.metric.CacheLatency(c.Name(), "ReadMulti", time.Since(now))
 
 	for i, k := range keys {
 		v, ok := cmd.Val()[i].(string)
@@ -139,7 +117,3 @@ func (c *Redis) Expire(key string, expiration time.Duration) (bool, error) {
 func (c *Redis) Name() string {
 	return c.name
 }
-
-type noopTracer struct{}
-
-func (c *noopTracer) CacheLatency(name, action string, n time.Duration) {}
