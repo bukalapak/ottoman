@@ -6,8 +6,7 @@ import (
 
 // Provider wraps WriteReader interface with additional functionalities.
 type Provider interface {
-	Writer
-	Reader
+	WriteReader
 	Normalizer
 	Namespace() string
 }
