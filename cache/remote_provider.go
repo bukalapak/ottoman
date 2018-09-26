@@ -30,6 +30,7 @@ type RemoteProvider interface {
 type RemoteOption struct {
 	Transport http.RoundTripper
 	Timeout   time.Duration
+	Resolver  Resolver
 }
 
 func (n RemoteOption) httpClient() *http.Client {
@@ -57,20 +58,18 @@ func (n RemoteOption) httpTimeout() time.Duration {
 
 type remoteProvider struct {
 	Provider
-	resolver Resolver
-	option   RemoteOption
+	option RemoteOption
 }
 
-func NewRemoteProvider(p Provider, r Resolver, opt RemoteOption) RemoteProvider {
+func NewRemoteProvider(p Provider, opt RemoteOption) RemoteProvider {
 	return &remoteProvider{
 		Provider: p,
-		resolver: r,
 		option:   opt,
 	}
 }
 
 func (p *remoteProvider) Fetch(key string, r *http.Request) ([]byte, int, error) {
-	req, err := p.resolver.Resolve(p.Normalize(key), r)
+	req, err := p.option.Resolver.Resolve(p.Normalize(key), r)
 	if err != nil {
 		return nil, 0, err
 	}

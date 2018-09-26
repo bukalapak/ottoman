@@ -18,7 +18,9 @@ func TestRemoteProvider(t *testing.T) {
 	defer h1.Close()
 
 	c1 := cache.NewProvider(newSample(), "zzz")
-	q1 := cache.NewRemoteProvider(c1, newResolver(), cache.RemoteOption{})
+	q1 := cache.NewRemoteProvider(c1, cache.RemoteOption{
+		Resolver: &resolver{},
+	})
 
 	t.Run("Fetch", func(t *testing.T) {
 		r, _ := http.NewRequest("GET", h1.URL, nil)
@@ -48,7 +50,8 @@ func TestRemoteProvider(t *testing.T) {
 	})
 
 	t.Run("Fetch (network failure)", func(t *testing.T) {
-		q2 := cache.NewRemoteProvider(c1, newResolver(), cache.RemoteOption{
+		q2 := cache.NewRemoteProvider(c1, cache.RemoteOption{
+			Resolver:  &resolver{},
 			Transport: &failureTransport{},
 			Timeout:   60 * time.Second,
 		})
@@ -73,10 +76,6 @@ func TestRemoteProvider(t *testing.T) {
 }
 
 type resolver struct{}
-
-func newResolver() *resolver {
-	return &resolver{}
-}
 
 func (v *resolver) Resolve(key string, r *http.Request) (*http.Request, error) {
 	req, _ := v.ResolveRequest(r)
