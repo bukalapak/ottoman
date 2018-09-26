@@ -87,3 +87,14 @@ func Normalize(key, prefix string) string {
 
 	return key
 }
+
+// NormalizeMulti is batch version of Normalize.
+func NormalizeMulti(keys []string, prefix string) []string {
+	ks := make([]string, len(keys))
+
+	for i := range keys {
+		ks[i] = Normalize(keys[i], prefix)
+	}
+
+	return ks
+}

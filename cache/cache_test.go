@@ -32,6 +32,25 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+func TestNormalizeMulti(t *testing.T) {
+	data := []string{
+		"foo/bar",
+		"api:foo/bar",
+		"bar:foo/bar",
+	}
+
+	var results []string
+
+	results = cache.NormalizeMulti(data, "")
+	assert.Equal(t, []string{"foo/bar", "foo/bar", "foo/bar"}, results)
+
+	results = cache.NormalizeMulti(data, "api")
+	assert.Equal(t, []string{"api:foo/bar", "api:foo/bar", "api:foo/bar"}, results)
+
+	results = cache.NormalizeMulti(data, "foo")
+	assert.Equal(t, []string{"foo:foo/bar", "foo:foo/bar", "foo:foo/bar"}, results)
+}
+
 type Sample struct {
 	data map[string]string
 }
