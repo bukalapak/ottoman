@@ -9,13 +9,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Fetcher is the interface for getting cache key from cache engine as well as to remote backend
+// Fetcher is the interface for getting cache data from remote backend based on given key(s).
 type Fetcher interface {
 	Fetch(key string, r *http.Request) (body []byte, statusCode int, err error)
 	FetchMulti(keys []string, r *http.Request) (bodies map[string][]byte, statusCodes map[string]int, err error)
 }
 
-// Resolver is the interface for resolving cache key to http request and cache router
+// Resolver is the interface for resolving cache key to http request.
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
 	ResolveRequest(r *http.Request) (*http.Request, error)
@@ -27,6 +27,7 @@ type RemoteProvider interface {
 	Fetcher
 }
 
+// RemoteOption is the configuration option for the RemoteProvider.
 type RemoteOption struct {
 	Transport http.RoundTripper
 	Timeout   time.Duration
@@ -61,6 +62,7 @@ type remoteProvider struct {
 	option RemoteOption
 }
 
+// NewRemoteProvider returns RemoteProvider from a Provider and RemoteOption.
 func NewRemoteProvider(p Provider, opt RemoteOption) RemoteProvider {
 	return &remoteProvider{
 		Provider: p,
