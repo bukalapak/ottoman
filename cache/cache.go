@@ -20,6 +20,7 @@ type Reader interface {
 	ReadMulti(keys []string) (map[string][]byte, error)
 }
 
+// WriteReader is the interface for writing and reading data.
 type WriteReader interface {
 	Writer
 	Reader
@@ -47,32 +48,6 @@ type Resolver interface {
 type Normalizer interface {
 	Normalize(key string) string
 	NormalizeMulti(keys []string) []string
-}
-
-// Provider wraps several interfaces with additional identifier for getting information about the implementation.
-type Provider interface {
-	Writer
-	Reader
-	Fetcher
-	ReadFetcher
-	Normalizer
-	Namespace() string
-}
-
-// MetricTracer traces cache latency within provider action
-type MetricTracer interface {
-	CacheLatency(name, action string, n time.Duration)
-}
-
-// BackendTracer traces backend latency within provider action
-type BackendTracer interface {
-	BackendLatency(route string, code int, n time.Duration)
-}
-
-// MetricCounter traces counters within provider action
-type MetricCounter interface {
-	IncrCacheCounter()
-	IncrBackendCounter()
 }
 
 // Normalize returns valid cache key. It can automatically detect prefixed/non-prefixed cache key and format the key properly.

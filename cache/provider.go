@@ -12,6 +12,32 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Provider wraps several interfaces with additional identifier for getting information about the implementation.
+type Provider interface {
+	Writer
+	Reader
+	Fetcher
+	ReadFetcher
+	Normalizer
+	Namespace() string
+}
+
+// MetricTracer traces cache latency within provider action
+type MetricTracer interface {
+	CacheLatency(name, action string, n time.Duration)
+}
+
+// BackendTracer traces backend latency within provider action
+type BackendTracer interface {
+	BackendLatency(route string, code int, n time.Duration)
+}
+
+// MetricCounter traces counters within provider action
+type MetricCounter interface {
+	IncrCacheCounter()
+	IncrBackendCounter()
+}
+
 type Engine struct {
 	engine    WriteReader
 	Prefix    string
