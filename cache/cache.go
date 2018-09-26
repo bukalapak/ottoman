@@ -3,7 +3,6 @@ package cache
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -24,24 +23,6 @@ type Reader interface {
 type WriteReader interface {
 	Writer
 	Reader
-}
-
-// Fetcher is the interface for getting cache key from cache engine as well as to remote backend
-type Fetcher interface {
-	Fetch(key string, r *http.Request) ([]byte, error)
-	FetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
-}
-
-// ReadFetcher is the interface for performing Reader and Fetcher combinations
-type ReadFetcher interface {
-	ReadFetch(key string, r *http.Request) ([]byte, error)
-	ReadFetchMulti(keys []string, r *http.Request) (map[string][]byte, error)
-}
-
-// Resolver is the interface for resolving cache key to http request and cache router
-type Resolver interface {
-	Resolve(key string, r *http.Request) (*http.Request, error)
-	ResolveRequest(r *http.Request) (*http.Request, error)
 }
 
 // Normalizer is the interface for normalizing cache key

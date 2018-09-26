@@ -1,378 +1,142 @@
 package cache_test
 
 import (
-	"fmt"
-	"sort"
-	"sync"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/bukalapak/ottoman/cache"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProvider_Name(t *testing.T) {
-	r := NewReader()
-	c := cache.NewProvider(r)
+func TestProvider(t *testing.T) {
+	z1 := newSample()
+	c1 := cache.NewProvider(z1, "zzz")
+	c2 := cache.NewProvider(newBroken(), "")
 
-	assert.Equal(t, r.Name(), c.Name())
-}
+	t.Run("Name", func(t *testing.T) {
+		assert.Equal(t, z1.Name(), c1.Name())
+	})
 
-func TestProvider_Write(t *testing.T) {
-	r := NewReader()
-	c := cache.NewProvider(r)
+	t.Run("Namespace", func(t *testing.T) {
+		assert.Equal(t, "zzz", c1.Namespace())
+		assert.Equal(t, "", c2.Namespace())
+	})
 
-	err := c.Write("foo", []byte("bar"), 10*time.Second)
-	assert.Nil(t, err)
-
-	v, ok := r.(*Sample).data["foo"]
-	assert.True(t, ok)
-	assert.Equal(t, "bar", v)
-}
-
-func TestProvider_Write_failure(t *testing.T) {
-	r := &XSample{}
-	c := cache.NewProvider(r)
-
-	err := c.Write("foo", []byte("bar"), 10*time.Second)
-	assert.NotNil(t, err)
-}
-
-func TestProvider_Read(t *testing.T) {
-	r := NewReader()
-	n := NewCounter()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Counter = n
-
-	b, err := c.Read("foo")
-	assert.Nil(t, err)
-	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
-	assert.Equal(t, 1, n.C)
-	assert.Equal(t, 0, n.B)
-}
-
-func TestProvider_Read_namespace(t *testing.T) {
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Prefix = "api"
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	b, err := c.Read("foo")
-	assert.Nil(t, err)
-	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
-
-	b, err = c.Read("api:foo")
-	assert.Nil(t, err)
-	assert.Equal(t, []byte(`{"foo":"bar"}`), b)
-}
-
-func TestProvider_ReadMulti(t *testing.T) {
-	r := NewReader()
-	n := NewCounter()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Counter = n
-
-	keys := []string{
-		"fox",
-		"api:foo",
-	}
-
-	m, err := c.ReadMulti(keys)
-	assert.Nil(t, err)
-	assert.Len(t, m, 2)
-	assert.Equal(t, []byte(`{"fox":"baz"}`), m["fox"])
-	assert.Equal(t, []byte(`{"foo":"bar"}`), m["foo"])
-	assert.Equal(t, 1, n.C)
-	assert.Equal(t, 0, n.B)
-}
-
-func TestProvider_Fetch(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	n := NewCounter()
-	z := NewTracer()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Counter = n
-	c.(*cache.Engine).Tracer = z
-
-	b, err := c.Fetch("zoo", q)
-	assert.Nil(t, err)
-	assert.Equal(t, `{"zoo":"zac"}`, string(b))
-	assert.Equal(t, 0, n.C)
-	assert.Equal(t, 1, n.B)
-	assert.Equal(t, 1, len(z.M))
-	assert.Contains(t, z.M[0], "/zoo::200")
-}
-
-func TestProvider_Fetch_badKey(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	b, err := c.Fetch("err", q)
-	assert.Equal(t, "unknown cache", err.Error())
-	assert.Nil(t, b)
-}
-
-func TestProvider_Fetch_failure(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Transport = &FailureTransport{}
-
-	b, err := c.Fetch("zoo", q)
-	assert.NotNil(t, err)
-	assert.Nil(t, b)
-}
-
-func TestProvider_Fetch_timeout(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Timeout = 1 * time.Microsecond
-
-	b, err := c.Fetch("zoo", q)
-	assert.Contains(t, err.Error(), "Client.Timeout exceeded")
-	assert.Nil(t, b)
-}
-
-func TestProvider_Fetch_backendError(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	b, err := c.Fetch("bad", q)
-	assert.Contains(t, err.Error(), "invalid http status: 500 Internal Server Error")
-	assert.Nil(t, b)
-}
-
-func TestProvider_FetchMulti(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	n := NewCounter()
-	z := NewTracer()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Counter = n
-	c.(*cache.Engine).Tracer = z
-
-	keys := []string{
-		"api:foo",
-		"zoo",
-	}
-
-	m, err := c.FetchMulti(keys, q)
-	assert.NotNil(t, err)
-
-	wrr := err.(*multierror.Error)
-	assert.Len(t, wrr.Errors, 1)
-	assert.Equal(t, "foo: unknown cache", wrr.Errors[0].Error())
-	assert.Len(t, m, 1)
-	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["zoo"])
-
-	assert.Equal(t, 0, n.C)
-	assert.Equal(t, 1, n.B)
-	assert.Equal(t, 1, len(z.M))
-	assert.Contains(t, z.M[0], "/zoo::200")
-}
-
-func TestProvider_FetchMulti_namespace(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Prefix = "api"
-	c.(*cache.Engine).Resolver = NewResolver()
-
-	keys := []string{
-		"api:foo",
-		"zoo",
-	}
-
-	m, err := c.FetchMulti(keys, q)
-	assert.NotNil(t, err)
-
-	wrr := err.(*multierror.Error)
-	assert.Len(t, wrr.Errors, 1)
-	assert.Equal(t, "api:foo: unknown cache", wrr.Errors[0].Error())
-	assert.Len(t, m, 1)
-	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["api:zoo"])
-}
-
-func TestProvider_FetchMulti_failure(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := &XSample{}
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Transport = &FailureTransport{}
-
-	keys := []string{
-		"api:foo",
-		"zoo",
-	}
-
-	m, err := c.FetchMulti(keys, q)
-	assert.NotNil(t, err)
-	assert.Empty(t, m)
-
-	assert.Len(t, err.(*multierror.Error).Errors, 2)
-	assert.Contains(t, multierror.Flatten(err).Error(), "/zoo: Connection failure")
-	assert.Contains(t, multierror.Flatten(err).Error(), "foo: unknown cache")
-}
-
-func TestProvider_Namespace(t *testing.T) {
-	r := NewReader()
-	c := cache.NewProvider(r)
-	assert.Equal(t, "", c.Namespace())
-
-	c.(*cache.Engine).Prefix = "api"
-	assert.Equal(t, "api", c.Namespace())
-}
-
-func TestProvider_ReadFetch(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	m := map[string]string{
-		"foo": `{"foo":"bar"}`,
-		"zoo": `{"zoo":"zac"}`,
-	}
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	n := NewCounter()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Counter = n
-
-	for k, v := range m {
-		b, err := c.ReadFetch(k, q)
+	t.Run("Write", func(t *testing.T) {
+		err := c1.Write("foo", []byte("bar"), 10*time.Second)
 		assert.Nil(t, err)
-		assert.Equal(t, v, string(b))
+
+		v, ok := z1.written["zzz:foo"]
+		assert.True(t, ok)
+		assert.Equal(t, map[string]string{"10s": "bar"}, v)
+	})
+
+	t.Run("Write (failure)", func(t *testing.T) {
+		err := c2.Write("foo", []byte("bar"), 10*time.Second)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("Read", func(t *testing.T) {
+		b, err := c1.Read("foo")
+		assert.Nil(t, err)
+		assert.Equal(t, []byte(`{"zzz":"bar"}`), b)
+	})
+
+	t.Run("Read (failure)", func(t *testing.T) {
+		_, err := c2.Read("foo")
+		assert.NotNil(t, err)
+	})
+
+	t.Run("ReadMulti", func(t *testing.T) {
+		keys := []string{
+			"foo",
+			"boo",
+		}
+
+		mb, err := c1.ReadMulti(keys)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte(`{"zzz":"bar"}`), mb["zzz:foo"])
+		assert.Equal(t, []byte(`{"zzz":"baz"}`), mb["zzz:boo"])
+	})
+
+	t.Run("ReadMulti (failure)", func(t *testing.T) {
+		keys := []string{
+			"foo",
+			"boo",
+		}
+
+		_, err := c2.ReadMulti(keys)
+		assert.NotNil(t, err)
+	})
+}
+
+type sample struct {
+	data    map[string]string
+	written map[string]map[string]string
+}
+
+func (m *sample) Name() string {
+	return "cache/sample"
+}
+
+func (m *sample) Write(key string, value []byte, expiration time.Duration) error {
+	m.written[key] = map[string]string{
+		expiration.String(): string(value),
 	}
 
-	assert.Equal(t, 1, n.C)
-	assert.Equal(t, 1, n.B)
+	return nil
 }
 
-func TestProvider_ReadFetchMulti(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
-
-	q := NewRequest(h.URL)
-	r := NewReader()
-	n := NewCounter()
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Prefix = "api"
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Counter = n
-
-	keys := []string{
-		"api:foo",
-		"zoo",
+func (m *sample) Read(key string) ([]byte, error) {
+	if v, ok := m.data[key]; ok {
+		return []byte(v), nil
 	}
 
-	m, err := c.ReadFetchMulti(keys, q)
-	assert.Nil(t, err)
-	assert.Len(t, m, 2)
-	assert.Equal(t, []byte(`{"zoo":"zac"}`), m["api:zoo"])
-	assert.Equal(t, []byte(`{"foo":"bar"}`), m["api:foo"])
-	assert.Equal(t, 1, n.C)
-	assert.Equal(t, 1, n.B)
+	return nil, errors.New("unknown cache")
 }
 
-func TestProvider_ReadFetchMulti_failure(t *testing.T) {
-	h := NewRemoteServer()
-	defer h.Close()
+func (m *sample) ReadMulti(keys []string) (map[string][]byte, error) {
+	z := make(map[string][]byte, len(keys))
 
-	q := NewRequest(h.URL)
-	r := &XSample{}
-	c := cache.NewProvider(r)
-	c.(*cache.Engine).Resolver = NewResolver()
-	c.(*cache.Engine).Transport = &FailureTransport{}
-
-	keys := []string{
-		"api:foo",
-		"zoo",
+	for _, key := range keys {
+		v, _ := m.Read(key)
+		z[key] = []byte(v)
 	}
 
-	m, err := c.ReadFetchMulti(keys, q)
-	assert.NotNil(t, err)
-	assert.Empty(t, m)
-
-	assert.Len(t, err.(*multierror.Error).Errors, 2)
-	assert.Contains(t, multierror.Flatten(err).Error(), "/zoo: Connection failure")
-	assert.Contains(t, multierror.Flatten(err).Error(), "foo: unknown cache")
+	return z, nil
 }
 
-type simpleCounter struct {
-	mu sync.Mutex
-	C  int
-	B  int
+func newSample() *sample {
+	return &sample{
+		written: make(map[string]map[string]string),
+		data: map[string]string{
+			"foo":     `{"foo":"bar"}`,
+			"yyy:foo": `{"yyy":"bar"}`,
+			"zzz:foo": `{"zzz":"bar"}`,
+			"zzz:boo": `{"zzz":"baz"}`,
+		},
+	}
 }
 
-func NewCounter() *simpleCounter {
-	return &simpleCounter{}
+type broken struct{}
+
+func (*broken) Write(key string, value []byte, expiration time.Duration) error {
+	return errors.New("example error from Write")
 }
 
-func (c *simpleCounter) IncrCacheCounter() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.C++
+func (*broken) Read(key string) ([]byte, error) {
+	return nil, errors.New("example error from Read")
 }
 
-func (c *simpleCounter) IncrBackendCounter() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.B++
+func (*broken) ReadMulti(keys []string) (map[string][]byte, error) {
+	return nil, errors.New("example error from ReadMulti")
 }
 
-type simpleTracer struct {
-	mu sync.Mutex
-	M  []string
+func (*broken) Name() string {
+	return "cache/broken"
 }
 
-func NewTracer() *simpleTracer {
-	return &simpleTracer{}
-}
-
-func (c *simpleTracer) BackendLatency(route string, code int, n time.Duration) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.M = append(c.M, fmt.Sprintf("%s::%d::%s", route, code, n.String()))
-	sort.Strings(c.M)
+func newBroken() *broken {
+	return &broken{}
 }
