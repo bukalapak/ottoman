@@ -11,7 +11,7 @@ check-all: check-all-metalinter
 check-all-metalinter: tool-metalinter
 	./bin/gometalinter --config=metalinter.json ./...
 update-x-http:
-	./.scripts/x-http-updater.sh
+	./scripts/x-http-updater.sh
 test:
 	go test -race -v $$(go list ./...)
 coverage:
