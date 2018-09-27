@@ -11,13 +11,10 @@ import (
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
 	"github.com/bukalapak/ottoman/memcache"
 	"github.com/stretchr/testify/assert"
-	"github.com/subosito/gotenv"
 )
 
 func TestMemcache(t *testing.T) {
-	gotenv.Load("../env.sample")
-
-	addr := os.Getenv("MEMCACHE_ADDR")
+	addr := memcachedAddr()
 	client := gomemcache.New(addr)
 
 	t.Run("Name", func(t *testing.T) {
@@ -184,4 +181,12 @@ func loadFixtures(client *gomemcache.Client, compress bool) {
 func cleanFixtures(client *gomemcache.Client) {
 	client.Delete("foo")
 	client.Delete("baz")
+}
+
+func memcachedAddr() string {
+	if addr := os.Getenv("MEMCACHE_ADDR"); addr != "" {
+		return addr
+	}
+
+	return "127.0.0.1:11211"
 }

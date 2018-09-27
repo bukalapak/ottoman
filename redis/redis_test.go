@@ -10,7 +10,6 @@ import (
 	envx "github.com/bukalapak/ottoman/x/env"
 	redisc "github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
-	"github.com/subosito/gotenv"
 )
 
 type Connector interface {
@@ -24,8 +23,6 @@ type Connector interface {
 }
 
 func TestRedis(t *testing.T) {
-	gotenv.Load("../env.sample")
-
 	t.Run("Standalone", func(t *testing.T) {
 		client := NewRedisConnector()
 		c := NewRedis()
@@ -142,30 +139,53 @@ func testExpire(t *testing.T, client Connector, c *redis.Redis) {
 
 func NewRedisConnector() Connector {
 	return redisc.NewClient(&redisc.Options{
-		Addr: os.Getenv("REDIS_ADDR"),
-		DB:   envx.Int("REDIS_DB"),
+		Addr: redisAddr(),
+		DB:   redisDb(),
 	})
 }
 
 func NewRedis() *redis.Redis {
 	opts := &redis.Option{
-		Addrs: []string{os.Getenv("REDIS_ADDR")},
-		DB:    envx.Int("REDIS_DB"),
+		Addrs: []string{redisAddr()},
+		DB:    redisDb(),
 	}
 
 	return redis.New(opts)
 }
 
-func clusterAddrs() []string {
-	return strings.Split(os.Getenv("REDIS_CLUSTER_ADDR"), ",")
+func redisAddr() string {
+	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
+		return addr
+	}
+
+	return "127.0.0.1:6379"
+}
+
+func redisDb() int {
+	return envx.Int("REDIS_DB")
+}
+
+func redisClusterAddrs() []string {
+	if addr := os.Getenv("REDIS_CLUSTER_ADDR"); addr != "" {
+		return strings.Split(addr, ",")
+	}
+
+	return []string{
+		"127.0.0.1:7000",
+		"127.0.0.1:7001",
+		"127.0.0.1:7002",
+		"127.0.0.1:7003",
+		"127.0.0.1:7004",
+		"127.0.0.1:7005",
+	}
 }
 
 func NewRedisClusterConnector() Connector {
-	return redisc.NewClusterClient(&redisc.ClusterOptions{Addrs: clusterAddrs()})
+	return redisc.NewClusterClient(&redisc.ClusterOptions{Addrs: redisClusterAddrs()})
 }
 
 func NewRedisCluster() *redis.Redis {
-	return redis.New(&redis.Option{Addrs: clusterAddrs(), ReadOnly: true})
+	return redis.New(&redis.Option{Addrs: redisClusterAddrs(), ReadOnly: true})
 }
 
 func loadFixtures(client Connector) {
