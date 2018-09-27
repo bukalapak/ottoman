@@ -9,10 +9,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// FetchInfo is the container for the information data from a backend.
+type FetchInfo struct {
+	RemoteURL  string
+	StatusCode int
+}
+
 // Fetcher is the interface for getting cache data from remote backend based on given key(s).
 type Fetcher interface {
-	Fetch(key string, r *http.Request) (body []byte, statusCode int, err error)
-	FetchMulti(keys []string, r *http.Request) (bodies map[string][]byte, statusCodes map[string]int, err error)
+	Fetch(key string, r *http.Request) ([]byte, *FetchInfo, error)
+	FetchMulti(keys []string, r *http.Request) (map[string][]byte, map[string]*FetchInfo, error)
 }
 
 // Resolver is the interface for resolving cache key to http request.
@@ -70,50 +76,63 @@ func NewRemoteProvider(p Provider, opt RemoteOption) RemoteProvider {
 	}
 }
 
-func (p *remoteProvider) Fetch(key string, r *http.Request) ([]byte, int, error) {
+func (p *remoteProvider) Fetch(key string, r *http.Request) ([]byte, *FetchInfo, error) {
 	req, err := p.option.Resolver.Resolve(p.Normalize(key), r)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	return p.fetchRequest(req)
 }
 
-func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, int, error) {
+func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, *FetchInfo, error) {
 	c := p.option.httpClient()
 
 	resp, err := c.Do(r)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, resp.StatusCode, errors.New("invalid http status: " + resp.Status)
+		return nil, &FetchInfo{
+			RemoteURL:  r.URL.String(),
+			StatusCode: resp.StatusCode,
+		}, errors.New("invalid http status: " + resp.Status)
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
-	return b, resp.StatusCode, err
+
+	return b, &FetchInfo{
+		RemoteURL:  r.URL.String(),
+		StatusCode: resp.StatusCode,
+	}, nil
 }
 
-func (p *remoteProvider) FetchMulti(keys []string, r *http.Request) (map[string][]byte, map[string]int, error) {
+func (p *remoteProvider) FetchMulti(keys []string, r *http.Request) (map[string][]byte, map[string]*FetchInfo, error) {
 	ks := p.NormalizeMulti(keys)
 
 	mb := make(map[string][]byte)
-	mn := make(map[string]int)
+	mn := make(map[string]*FetchInfo)
+
+	type fetchPayload struct {
+		body []byte
+		info *FetchInfo
+	}
 
 	ec := make(chan error)
-	bc := make(chan map[string]map[int][]byte)
+	bc := make(chan map[string]fetchPayload)
 
 	for _, k := range ks {
 		go func(key string) {
-			z, n, err := p.Fetch(key, r)
+			b, n, err := p.Fetch(key, r)
 			if err != nil {
 				ec <- errors.Wrap(err, key)
 			} else {
-				bc <- map[string]map[int][]byte{
-					key: {
-						n: z,
+				bc <- map[string]fetchPayload{
+					key: fetchPayload{
+						body: b,
+						info: n,
 					},
 				}
 			}
@@ -126,10 +145,8 @@ func (p *remoteProvider) FetchMulti(keys []string, r *http.Request) (map[string]
 		select {
 		case kb := <-bc:
 			for k, v := range kb {
-				for n, b := range v {
-					mb[k] = b
-					mn[k] = n
-				}
+				mb[k] = v.body
+				mn[k] = v.info
 			}
 		case err := <-ec:
 			mrr = multierror.Append(mrr, err)

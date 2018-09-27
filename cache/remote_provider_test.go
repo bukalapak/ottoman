@@ -28,7 +28,8 @@ func TestRemoteProvider(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, []byte(`{"zoo":"zac"}`), b)
-		assert.Equal(t, http.StatusOK, n)
+		assert.Equal(t, http.StatusOK, n.StatusCode)
+		assert.Contains(t, n.RemoteURL, "/zoo")
 	})
 
 	t.Run("Fetch (unknown key)", func(t *testing.T) {
@@ -46,7 +47,8 @@ func TestRemoteProvider(t *testing.T) {
 
 		assert.NotNil(t, err)
 		assert.Nil(t, b)
-		assert.Equal(t, http.StatusInternalServerError, n)
+		assert.Equal(t, http.StatusInternalServerError, n.StatusCode)
+		assert.Contains(t, n.RemoteURL, "/bad")
 	})
 
 	t.Run("Fetch (network failure)", func(t *testing.T) {
@@ -71,7 +73,8 @@ func TestRemoteProvider(t *testing.T) {
 		assert.Contains(t, err.Error(), "zzz:unknown: unknown cache")
 		assert.Len(t, mb, 1)
 		assert.Equal(t, []byte(`{"zoo":"zac"}`), mb["zzz:zoo"])
-		assert.Equal(t, http.StatusOK, mn["zzz:zoo"])
+		assert.Equal(t, http.StatusOK, mn["zzz:zoo"].StatusCode)
+		assert.Contains(t, mn["zzz:zoo"].RemoteURL, "/zoo")
 	})
 }
 
