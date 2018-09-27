@@ -106,7 +106,7 @@ func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, *FetchInfo, erro
 	return b, &FetchInfo{
 		RemoteURL:  r.URL.String(),
 		StatusCode: resp.StatusCode,
-	}, nil
+	}, err
 }
 
 func (p *remoteProvider) FetchMulti(keys []string, r *http.Request) (map[string][]byte, map[string]*FetchInfo, error) {
@@ -130,7 +130,7 @@ func (p *remoteProvider) FetchMulti(keys []string, r *http.Request) (map[string]
 				ec <- errors.Wrap(err, key)
 			} else {
 				bc <- map[string]fetchPayload{
-					key: fetchPayload{
+					key: {
 						body: b,
 						info: n,
 					},
