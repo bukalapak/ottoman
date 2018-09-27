@@ -11,7 +11,7 @@ func init() {
 }
 
 func JSON() zerolog.Logger {
-	return zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
+	return zerolog.New(os.Stderr).With().Timestamp().Caller().Logger()
 }
 
 func Discard() zerolog.Logger {
