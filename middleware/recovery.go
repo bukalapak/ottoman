@@ -24,7 +24,7 @@ func (v *Recovery) Handler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				log := LoggerFromContext(r.Context(), v.Logger)
+				log := LoggerWithContext(r.Context(), v.Logger)
 				log.Error().
 					Str("stack_trace", string(debug.Stack())).
 					Msg("ottoman:middleware/recovery")

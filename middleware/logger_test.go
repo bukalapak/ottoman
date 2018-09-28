@@ -16,7 +16,7 @@ func TestLoggerFromContext(t *testing.T) {
 	ctx := middleware.NewRequestIDContext(req.Context(), "request-id")
 
 	buf := new(bytes.Buffer)
-	log := middleware.LoggerFromContext(ctx, logger.JSON()).Output(buf)
+	log := middleware.LoggerWithContext(ctx, logger.JSON()).Output(buf)
 	log.Info().Msg("Hello world!")
 
 	ent := make(map[string]string)
