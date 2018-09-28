@@ -76,12 +76,23 @@ func TestRemoteProvider(t *testing.T) {
 		assert.Equal(t, http.StatusOK, mn["zzz:zoo"].StatusCode)
 		assert.Contains(t, mn["zzz:zoo"].RemoteURL, "/zoo")
 	})
+
+	t.Run("Resolve", func(t *testing.T) {
+		r, _ := http.NewRequest("GET", h1.URL, nil)
+		req1, err := q1.Resolve("zoo", r)
+		assert.Nil(t, err)
+		assert.Equal(t, "/zoo", req1.URL.Path)
+
+		req2, err := q1.Resolve("unknown", r)
+		assert.Equal(t, "unknown cache", err.Error())
+		assert.Nil(t, req2)
+	})
 }
 
 type resolver struct{}
 
 func (v *resolver) Resolve(key string, r *http.Request) (*http.Request, error) {
-	req, _ := v.ResolveRequest(r)
+	req := httpclone.Request(r)
 
 	keys := map[string]string{
 		"zzz:bad": "/bad",
@@ -95,10 +106,6 @@ func (v *resolver) Resolve(key string, r *http.Request) (*http.Request, error) {
 	}
 
 	return req, nil
-}
-
-func (v *resolver) ResolveRequest(r *http.Request) (*http.Request, error) {
-	return httpclone.Request(r), nil
 }
 
 func newRemoteServer() *httptest.Server {

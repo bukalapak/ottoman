@@ -24,12 +24,12 @@ type Fetcher interface {
 // Resolver is the interface for resolving cache key to http request.
 type Resolver interface {
 	Resolve(key string, r *http.Request) (*http.Request, error)
-	ResolveRequest(r *http.Request) (*http.Request, error)
 }
 
 // RemoteProvider enhances Provider with remote functionalities.
 type RemoteProvider interface {
 	Provider
+	Resolver
 	Fetcher
 }
 
@@ -77,7 +77,7 @@ func NewRemoteProvider(p Provider, opt RemoteOption) RemoteProvider {
 }
 
 func (p *remoteProvider) Fetch(key string, r *http.Request) ([]byte, *FetchInfo, error) {
-	req, err := p.option.Resolver.Resolve(p.Normalize(key), r)
+	req, err := p.Resolve(p.Normalize(key), r)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,4 +154,8 @@ func (p *remoteProvider) FetchMulti(keys []string, r *http.Request) (map[string]
 	}
 
 	return mb, mn, mrr.ErrorOrNil()
+}
+
+func (p *remoteProvider) Resolve(key string, r *http.Request) (*http.Request, error) {
+	return p.option.Resolver.Resolve(p.Normalize(key), r)
 }
