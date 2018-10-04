@@ -13,6 +13,7 @@ import (
 type FetchInfo struct {
 	RemoteURL  string
 	StatusCode int
+	Duration   time.Duration
 }
 
 // Fetcher is the interface for getting cache data from remote backend based on given key(s).
@@ -87,6 +88,7 @@ func (p *remoteProvider) Fetch(key string, r *http.Request) ([]byte, *FetchInfo,
 
 func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, *FetchInfo, error) {
 	c := p.option.httpClient()
+	now := time.Now()
 
 	resp, err := c.Do(r)
 	if err != nil {
@@ -98,6 +100,7 @@ func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, *FetchInfo, erro
 		return nil, &FetchInfo{
 			RemoteURL:  r.URL.String(),
 			StatusCode: resp.StatusCode,
+			Duration:   time.Since(now),
 		}, errors.New("invalid http status: " + resp.Status)
 	}
 
@@ -106,6 +109,7 @@ func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, *FetchInfo, erro
 	return b, &FetchInfo{
 		RemoteURL:  r.URL.String(),
 		StatusCode: resp.StatusCode,
+		Duration:   time.Since(now),
 	}, err
 }
 

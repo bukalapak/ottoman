@@ -49,6 +49,7 @@ func TestRemoteProvider(t *testing.T) {
 		assert.Nil(t, b)
 		assert.Equal(t, http.StatusInternalServerError, n.StatusCode)
 		assert.Contains(t, n.RemoteURL, "/bad")
+		assert.NotZero(t, n.Duration)
 	})
 
 	t.Run("Fetch (network failure)", func(t *testing.T) {
@@ -75,6 +76,7 @@ func TestRemoteProvider(t *testing.T) {
 		assert.Equal(t, []byte(`{"zoo":"zac"}`), mb["zzz:zoo"])
 		assert.Equal(t, http.StatusOK, mn["zzz:zoo"].StatusCode)
 		assert.Contains(t, mn["zzz:zoo"].RemoteURL, "/zoo")
+		assert.NotZero(t, mn["zzz:zoo"].Duration)
 	})
 
 	t.Run("Resolve", func(t *testing.T) {
