@@ -9,12 +9,12 @@ type Notifier interface {
 	Notify(err interface{}, stack []byte)
 }
 
-type notifyLogger interface {
+type RecoveryLogger interface {
 	Error(msg string, stackTrace string)
 }
 
 type Recovery struct {
-	Logger notifyLogger
+	Logger RecoveryLogger
 	agent  Notifier
 }
 
