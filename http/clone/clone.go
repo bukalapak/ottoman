@@ -32,10 +32,10 @@ func DumpBody(b io.ReadCloser) ([]byte, io.ReadCloser, error) {
 		return nil, b, err
 	}
 
-	return z.Bytes(), NopCloser(z.Bytes()), nil
+	return z.Bytes(), nopCloser(z.Bytes()), nil
 }
 
-func NopCloser(b []byte) io.ReadCloser {
+func nopCloser(b []byte) io.ReadCloser {
 	return ioutil.NopCloser(bytes.NewReader(b))
 }
 

@@ -140,7 +140,7 @@ func TestRequest_concurrent(t *testing.T) {
 			defer wg.Done()
 
 			r := httpclone.Request(req)
-			r.Body = httpclone.NopCloser(b)
+			r.Body = nopCloser(b)
 			r.ContentLength = int64(len(b))
 
 			clientDo(t, r, fx)
@@ -162,4 +162,8 @@ func clientDo(t *testing.T, r *http.Request, fx func(t *testing.T, q *http.Respo
 	assert.Nil(t, err)
 
 	fx(t, q)
+}
+
+func nopCloser(b []byte) io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewReader(b))
 }
