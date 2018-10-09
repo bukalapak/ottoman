@@ -1,4 +1,4 @@
-// Package redis implements a Redis client.
+// Package redis implements a Redis client which compatible with cache.Storage.
 package redis
 
 import (

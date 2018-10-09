@@ -1,4 +1,4 @@
-// Package memcache provides a cache.Provider compatible client for the memcached cache server.
+// Package memcache provides a cache.Storage compatible client for the memcached cache server.
 package memcache
 
 import (
