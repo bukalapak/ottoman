@@ -4,15 +4,15 @@ import (
 	"time"
 )
 
-// Provider wraps WriteReader interface with additional functionalities.
+// Provider wraps Storage interface with additional functionalities.
 type Provider interface {
-	WriteReader
+	Storage
 	Normalizer
 	Namespace() string
 }
 
-// NewProvider returns Provider from a WriteReader and prefix.
-func NewProvider(z WriteReader, prefix string) Provider {
+// NewProvider returns Provider from a Storage and prefix.
+func NewProvider(z Storage, prefix string) Provider {
 	return &provider{
 		engine: z,
 		prefix: prefix,
@@ -20,7 +20,7 @@ func NewProvider(z WriteReader, prefix string) Provider {
 }
 
 type provider struct {
-	engine WriteReader
+	engine Storage
 	prefix string
 }
 

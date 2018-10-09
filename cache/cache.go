@@ -19,8 +19,8 @@ type Reader interface {
 	ReadMulti(keys []string) (map[string][]byte, error)
 }
 
-// WriteReader is the interface for writing and reading data.
-type WriteReader interface {
+// Storage is the interface for writing and reading data.
+type Storage interface {
 	Writer
 	Reader
 }
