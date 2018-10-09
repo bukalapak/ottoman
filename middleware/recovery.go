@@ -3,32 +3,30 @@ package middleware
 import (
 	"net/http"
 	"runtime/debug"
-
-	"github.com/rs/zerolog"
 )
 
 type Notifier interface {
 	Notify(err interface{}, stack []byte)
 }
 
+type notifyLogger interface {
+	Error(msg string, stackTrace string)
+}
+
 type Recovery struct {
-	Logger zerolog.Logger
+	Logger notifyLogger
 	agent  Notifier
 }
 
 func NewRecovery(agent Notifier) *Recovery {
-	return &Recovery{agent: agent}
+	return &Recovery{agent: agent, Logger: &nopLogger{}}
 }
 
 func (v *Recovery) Handler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				log := LoggerWithContext(r.Context(), v.Logger)
-				log.Error().
-					Str("stack_trace", string(debug.Stack())).
-					Msg("ottoman:middleware/recovery")
-
+				v.Logger.Error("ottoman:middleware/recovery", string(debug.Stack()))
 				v.agent.Notify(rec, debug.Stack())
 				w.WriteHeader(http.StatusInternalServerError)
 			}
@@ -39,3 +37,7 @@ func (v *Recovery) Handler(h http.Handler) http.Handler {
 
 	return http.HandlerFunc(fn)
 }
+
+type nopLogger struct{}
+
+func (n *nopLogger) Error(msg string, stackTrace string) {}
