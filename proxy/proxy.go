@@ -10,15 +10,7 @@ import (
 
 type Transformer interface {
 	http.RoundTripper
-	Director
-	Modifier
-}
-
-type Director interface {
 	Director(t Targeter) func(*http.Request)
-}
-
-type Modifier interface {
 	ModifyResponse(*http.Response) error
 }
 
