@@ -3,11 +3,9 @@ package middleware
 import (
 	"net/http"
 	"runtime/debug"
-)
 
-type RecoveryNotifier interface {
-	Notify(err interface{}, stack []byte)
-}
+	"github.com/bukalapak/ottoman/notify"
+)
 
 type RecoveryLogger interface {
 	Error(msg string, stackTrace string)
@@ -15,10 +13,10 @@ type RecoveryLogger interface {
 
 type Recovery struct {
 	Logger RecoveryLogger
-	agent  RecoveryNotifier
+	agent  notify.Notifier
 }
 
-func NewRecovery(agent RecoveryNotifier) *Recovery {
+func NewRecovery(agent notify.Notifier) *Recovery {
 	return &Recovery{agent: agent, Logger: &nopLogger{}}
 }
 

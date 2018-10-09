@@ -4,6 +4,10 @@ import (
 	honeybadger "github.com/honeybadger-io/honeybadger-go"
 )
 
+type Notifier interface {
+	Notify(err interface{}, stack []byte)
+}
+
 // Honeybadger wraps honeybadger.Client
 type Honeybadger struct {
 	client  *honeybadger.Client
