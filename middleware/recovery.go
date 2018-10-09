@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 )
 
-type Notifier interface {
+type RecoveryNotifier interface {
 	Notify(err interface{}, stack []byte)
 }
 
@@ -15,10 +15,10 @@ type RecoveryLogger interface {
 
 type Recovery struct {
 	Logger RecoveryLogger
-	agent  Notifier
+	agent  RecoveryNotifier
 }
 
-func NewRecovery(agent Notifier) *Recovery {
+func NewRecovery(agent RecoveryNotifier) *Recovery {
 	return &Recovery{agent: agent, Logger: &nopLogger{}}
 }
 
