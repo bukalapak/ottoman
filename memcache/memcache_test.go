@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,6 +34,43 @@ func TestMemcache(t *testing.T) {
 		item, err := client.Get("foo")
 		assert.Nil(t, err)
 		assert.Equal(t, []byte("bar"), item.Value)
+
+		cleanFixtures(client)
+	})
+
+	t.Run("Write-Compress", func(t *testing.T) {
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: true,
+		})
+
+		err := c.Write("foo", []byte("bar"), 10*time.Second)
+		assert.Nil(t, err)
+
+		item, err := client.Get("foo")
+		assert.Nil(t, err)
+		assert.Equal(t, []byte("bar"), item.Value)
+
+		cleanFixtures(client)
+	})
+
+	t.Run("Write-Compress-Zlib", func(t *testing.T) {
+		c := memcache.New([]string{addr}, memcache.Option{
+			Compress: true,
+		})
+
+		err := c.Write("foo", []byte(strings.Repeat("bar", 1000)), 10*time.Second)
+		assert.Nil(t, err)
+
+		item, err := client.Get("foo")
+		assert.Nil(t, err)
+
+		var b bytes.Buffer
+
+		w := zlib.NewWriter(&b)
+		w.Write([]byte(strings.Repeat("bar", 1000)))
+		w.Close()
+
+		assert.Equal(t, b.Bytes(), item.Value)
 
 		cleanFixtures(client)
 	})

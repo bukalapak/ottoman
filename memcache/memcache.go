@@ -38,7 +38,7 @@ func New(ss []string, option Option) *Memcache {
 func (c *Memcache) Write(key string, value []byte, expiration time.Duration) error {
 	item := &memcache.Item{
 		Key:        key,
-		Value:      value,
+		Value:      c.compress(value),
 		Expiration: int32(expiration.Seconds()),
 	}
 
@@ -92,6 +92,24 @@ func (c *Memcache) readValue(data []byte) (n []byte, err error) {
 	}
 
 	return ioutil.ReadAll(r)
+}
+
+func (c *Memcache) compress(data []byte) []byte {
+	if !c.option.Compress {
+		return data
+	}
+
+	if len(data) >= 1024 {
+		var b bytes.Buffer
+
+		z := zlib.NewWriter(&b)
+		z.Write(data)
+		z.Close()
+
+		return b.Bytes()
+	}
+
+	return data
 }
 
 func netTimeout(timeout time.Duration) time.Duration {
