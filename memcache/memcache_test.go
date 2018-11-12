@@ -170,6 +170,24 @@ func TestMemcache(t *testing.T) {
 		cleanFixtures(client)
 	})
 
+	t.Run("Delete", func(t *testing.T) {
+		loadUncompressedFixtures(client)
+
+		c := memcache.New([]string{addr}, memcache.Option{})
+
+		err := c.Delete("foo")
+		assert.Nil(t, err)
+
+		cleanFixtures(client)
+	})
+
+	t.Run("Delete-Miss", func(t *testing.T) {
+		c := memcache.New([]string{addr}, memcache.Option{})
+
+		err := c.Delete("boo")
+		assert.Error(t, gomemcache.ErrCacheMiss, err.Error())
+	})
+
 	os.Clearenv()
 }
 

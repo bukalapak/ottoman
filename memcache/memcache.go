@@ -35,6 +35,7 @@ func New(ss []string, option Option) *Memcache {
 }
 
 // Write writes the item for given key.
+// It's automatically compress large item.
 func (c *Memcache) Write(key string, value []byte, expiration time.Duration) error {
 	item := &memcache.Item{
 		Key:        key,
@@ -46,7 +47,7 @@ func (c *Memcache) Write(key string, value []byte, expiration time.Duration) err
 }
 
 // Read reads the item for given key.
-// It's automatically decode item.Value depending on the client option.
+// It's automatically decode item. Value depending on the client option.
 func (c *Memcache) Read(key string) ([]byte, error) {
 	item, err := c.client.Get(key)
 	if err != nil {
@@ -77,6 +78,11 @@ func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
 // Name returns cache storage identifier.
 func (c *Memcache) Name() string {
 	return "Memcached"
+}
+
+// Delete deletes the item for given key.
+func (c *Memcache) Delete(key string) error {
+	return c.client.Delete(key)
 }
 
 func (c *Memcache) readValue(data []byte) (n []byte, err error) {
