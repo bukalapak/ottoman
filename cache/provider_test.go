@@ -69,6 +69,16 @@ func TestProvider(t *testing.T) {
 		_, err := c2.ReadMulti(keys)
 		assert.NotNil(t, err)
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		err := c1.Delete("foo")
+		assert.Nil(t, err)
+	})
+
+	t.Run("Delete (failure)", func(t *testing.T) {
+		err := c2.Delete("foo")
+		assert.NotNil(t, err)
+	})
 }
 
 type sample struct {
@@ -107,6 +117,11 @@ func (m *sample) ReadMulti(keys []string) (map[string][]byte, error) {
 	return z, nil
 }
 
+func (m *sample) Delete(key string) error {
+	delete(m.data, key)
+	return nil
+}
+
 func newSample() *sample {
 	return &sample{
 		written: make(map[string]map[string]string),
@@ -131,6 +146,10 @@ func (*broken) Read(key string) ([]byte, error) {
 
 func (*broken) ReadMulti(keys []string) (map[string][]byte, error) {
 	return nil, errors.New("example error from ReadMulti")
+}
+
+func (*broken) Delete(key string) error {
+	return errors.New("example error from Delete")
 }
 
 func (*broken) Name() string {

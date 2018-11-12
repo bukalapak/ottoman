@@ -56,3 +56,8 @@ func (p *provider) Read(key string) ([]byte, error) {
 func (p *provider) ReadMulti(keys []string) (map[string][]byte, error) {
 	return p.engine.ReadMulti(p.NormalizeMulti(keys))
 }
+
+// Delete deletes the item with given key.
+func (p *provider) Delete(key string) error {
+	return p.engine.Delete(p.Normalize(key))
+}

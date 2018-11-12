@@ -23,6 +23,7 @@ type Reader interface {
 type Storage interface {
 	Writer
 	Reader
+	Delete(key string) error
 }
 
 // Normalizer is the interface for normalizing cache key
