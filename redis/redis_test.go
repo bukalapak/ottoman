@@ -34,6 +34,8 @@ func TestRedis(t *testing.T) {
 		t.Run("ReadMulti", func(t *testing.T) { testReadMulti(t, client, c) })
 		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
 		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
+		t.Run("Delete", func(t *testing.T) { testDelete(t, client, c) })
+		t.Run("Delete-Unknown", func(t *testing.T) { testDeleteUnknown(t, c) })
 	})
 
 	t.Run("RedisCluster", func(t *testing.T) {
@@ -47,6 +49,8 @@ func TestRedis(t *testing.T) {
 		t.Run("ReadMulti", func(t *testing.T) { testReadMulti(t, client, c) })
 		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
 		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
+		t.Run("Delete", func(t *testing.T) { testDelete(t, client, c) })
+		t.Run("Delete-Unknown", func(t *testing.T) { testDeleteUnknown(t, c) })
 		t.Run("ReadMulti-CROSSSLOT", func(t *testing.T) {
 			loadFixtures(client)
 
@@ -135,6 +139,20 @@ func testExpire(t *testing.T, client Connector, c *redis.Redis) {
 	assert.Equal(t, time.Hour, cmd.Val())
 
 	cleanFixtures(client)
+}
+
+func testDelete(t *testing.T, client Connector, c *redis.Redis) {
+	loadFixtures(client)
+
+	err := c.Delete("foo")
+	assert.Nil(t, err)
+
+	cleanFixtures(client)
+}
+
+func testDeleteUnknown(t *testing.T, c *redis.Redis) {
+	err := c.Delete("boo")
+	assert.NotNil(t, err)
 }
 
 func NewRedisConnector() Connector {

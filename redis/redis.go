@@ -2,10 +2,13 @@
 package redis
 
 import (
+	"errors"
 	"time"
 
 	redisc "github.com/go-redis/redis"
 )
+
+var errCacheMiss = errors.New("redis: cache miss")
 
 // Option represents configurable configuration for redis client.
 type Option struct {
@@ -26,6 +29,7 @@ type connector interface {
 	MGet(keys ...string) *redisc.SliceCmd
 	Incr(key string) *redisc.IntCmd
 	Expire(key string, expiration time.Duration) *redisc.BoolCmd
+	Del(keys ...string) *redisc.IntCmd
 }
 
 // Redis is a Redis client representing a pool of zero or more underlying connections.
@@ -116,4 +120,16 @@ func (c *Redis) Expire(key string, expiration time.Duration) (bool, error) {
 // Name returns cache storage identifier.
 func (c *Redis) Name() string {
 	return c.name
+}
+
+// Delete deletes the item for given key.
+func (c *Redis) Delete(key string) error {
+	cmd := c.client.Del(key)
+
+	n, _ := cmd.Result()
+	if n == 0 {
+		return errCacheMiss
+	}
+
+	return nil
 }
