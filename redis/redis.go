@@ -21,6 +21,9 @@ type Option struct {
 
 	// Cluster specific flag to enable read-only commands on slave nodes.
 	ReadOnly bool
+
+	MaxRetries  int
+	IdleTimeout time.Duration
 }
 
 type connector interface {
@@ -45,9 +48,11 @@ func New(opts *Option) *Redis {
 		return &Redis{
 			name: "Redis",
 			client: redisc.NewClient(&redisc.Options{
-				Addr:     opts.Addrs[0],
-				DB:       opts.DB,
-				Password: opts.Password,
+				Addr:        opts.Addrs[0],
+				DB:          opts.DB,
+				Password:    opts.Password,
+				MaxRetries:  opts.MaxRetries,
+				IdleTimeout: opts.IdleTimeout,
 			}),
 		}
 	}
@@ -55,9 +60,11 @@ func New(opts *Option) *Redis {
 	return &Redis{
 		name: "Redis Cluster",
 		client: redisc.NewClusterClient(&redisc.ClusterOptions{
-			Addrs:    opts.Addrs,
-			Password: opts.Password,
-			ReadOnly: opts.ReadOnly,
+			Addrs:       opts.Addrs,
+			Password:    opts.Password,
+			ReadOnly:    opts.ReadOnly,
+			MaxRetries:  opts.MaxRetries,
+			IdleTimeout: opts.IdleTimeout,
 		}),
 	}
 }
