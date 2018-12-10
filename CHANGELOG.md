@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] - 2018-12-10
+
+### Added
+
+- `MaxRetries` and `IdleTimeout` options for redis package.
+
 ## [1.2.0] - 2018-11-12
 
 ### Added
