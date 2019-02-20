@@ -15,11 +15,15 @@ func TestRecovery(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/", nil)
-	rec := httptest.NewRecorder()
-	cov := middleware.NewRecovery(NewAgent(t))
-	cov.Logger = NewLogger(t)
+	rec1 := httptest.NewRecorder()
+	cov1 := middleware.NewRecovery(NewAgent(t))
+	cov1.Handler(http.HandlerFunc(fn)).ServeHTTP(rec1, req)
 
-	cov.Handler(http.HandlerFunc(fn)).ServeHTTP(rec, req)
+	rec2 := httptest.NewRecorder()
+	cov2 := middleware.NewRecovery(NewAgent(t))
+	cov2.Logger = NewLogger(t)
+
+	cov2.Handler(http.HandlerFunc(fn)).ServeHTTP(rec2, req)
 }
 
 type Agent struct {
