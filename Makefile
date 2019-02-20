@@ -3,7 +3,7 @@ SHELL := /bin/bash
 export PATH := $(shell pwd)/bin:${PATH}
 
 tool-metalinter:
-	@./scripts/install-metalinter.sh
+	@curl -sfL https://raw.githubusercontent.com/bukalapak/toolkit-installer/master/gometalinter.sh | sh
 check: check-metalinter
 check-metalinter: tool-metalinter
 	./bin/gometalinter --fast --config=metalinter.json ./...
