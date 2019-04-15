@@ -5,6 +5,8 @@ jobs:
     docker:
       - image: circleci/golang:1.10-stretch
       - image: bitnami/redis:5.0
+        environment:
+          ALLOW_EMPTY_PASSWORD: 'yes'
       - image: memcached:1.4-alpine
       - image: grokzen/redis-cluster:5.0.4
       - image: bitnami/redis-sentinel:5.0
