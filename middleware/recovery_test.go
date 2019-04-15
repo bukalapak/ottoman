@@ -47,7 +47,7 @@ func NewLogger(t *testing.T) *Logger {
 	return &Logger{t: t}
 }
 
-func (l *Logger) Error(msg string, stack string) {
-	assert.Equal(l.t, "!!!", msg)
+func (l *Logger) Error(err interface{}, stack []byte) {
+	assert.Equal(l.t, "!!!", err)
 	assert.NotEmpty(l.t, stack)
 }
