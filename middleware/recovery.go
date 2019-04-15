@@ -8,7 +8,7 @@ import (
 )
 
 type RecoveryLogger interface {
-	Error(msg string, stackTrace string)
+	Error(err interface{}, stackTrace []byte)
 }
 
 type Recovery struct {
@@ -24,7 +24,7 @@ func (v *Recovery) Handler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				v.Logger.Error(rec.(string), string(debug.Stack()))
+				v.Logger.Error(rec, debug.Stack())
 				v.agent.Notify(rec, debug.Stack())
 				w.WriteHeader(http.StatusInternalServerError)
 			}
@@ -38,4 +38,4 @@ func (v *Recovery) Handler(h http.Handler) http.Handler {
 
 type nopLogger struct{}
 
-func (n *nopLogger) Error(msg string, stackTrace string) {}
+func (n *nopLogger) Error(err interface{}, stackTrace []byte) {}
