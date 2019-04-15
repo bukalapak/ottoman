@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0] - 2019-04-15
+
+### Changed
+
+- Updated RecoveryLogger signature
+
 ## [1.2.1] - 2018-12-10
 
 ### Added
