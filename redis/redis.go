@@ -22,6 +22,9 @@ type Option struct {
 	// Cluster specific flag to enable read-only commands on slave nodes.
 	ReadOnly bool
 
+	// Sentinel specific flag to set master name.
+	MasterName string
+
 	MaxRetries  int
 	IdleTimeout time.Duration
 }
@@ -44,6 +47,19 @@ type Redis struct {
 
 // New returns a client to the redis server specified by Option.
 func New(opts *Option) *Redis {
+	if opts.MasterName != "" {
+		return &Redis{
+			name: "Redis Sentinel",
+			client: redisc.NewFailoverClient(&redisc.FailoverOptions{
+				MasterName:    opts.MasterName,
+				SentinelAddrs: opts.Addrs,
+				Password:      opts.Password,
+				MaxRetries:    opts.MaxRetries,
+				IdleTimeout:   opts.IdleTimeout,
+			}),
+		}
+	}
+
 	if len(opts.Addrs) == 1 {
 		return &Redis{
 			name: "Redis",
