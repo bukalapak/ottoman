@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/bukalapak/ottoman
     docker:
-      - image: circleci/golang:1.10-stretch
+      - image: circleci/golang:1.12-stretch
       - image: memcached:1.4-alpine
       - image: bitnami/redis:5.0
         environment:
@@ -11,9 +11,11 @@ jobs:
       - image: grokzen/redis-cluster:5.0.4
       - image: bitnami/redis-sentinel:5.0
         environment:
+          REDIS_HOST_MASTER: 'localhost'
           REDIS_MASTER_SET: 'redis-master'
     steps:
       - checkout
+      - setup_remote_docker
       - run: go version
       - run: go get -t ./...
       - run: make check
