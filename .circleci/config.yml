@@ -13,9 +13,9 @@ jobs:
         environment:
           REDIS_HOST_MASTER: 'localhost'
           REDIS_MASTER_SET: 'redis-master'
+        command: "sleep 10 && nami start --foreground redis-sentinel"
     steps:
       - checkout
-      - setup_remote_docker
       - run: go version
       - run: go get -t ./...
       - run: make check
