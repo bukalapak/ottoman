@@ -9,13 +9,15 @@ jobs:
         environment:
           ALLOW_EMPTY_PASSWORD: 'yes'
       - image: grokzen/redis-cluster:5.0.4
-      - image: bitnami/redis-sentinel:5.0
-        environment:
-          REDIS_HOST_MASTER: 'localhost'
-          REDIS_MASTER_SET: 'redis-master'
-        command: "sleep 10 && nami start --foreground redis-sentinel"
     steps:
       - checkout
+      - run:
+          command: |
+            sudo apt update
+            sudo apt install redis-server
+      - run:
+          command: redis-server .circleci/sentinel.conf --sentinel
+          background: true
       - run: go version
       - run: go get -t ./...
       - run: make check
