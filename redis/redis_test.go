@@ -67,6 +67,21 @@ func TestRedis(t *testing.T) {
 		})
 	})
 
+	t.Run("RedisSentinel", func(t *testing.T) {
+		client := NewRedisSentinelConnector()
+		c := NewRedisSentinel()
+
+		t.Run("Name", func(t *testing.T) { assert.Equal(t, "Redis Sentinel", c.Name()) })
+		t.Run("Write", func(t *testing.T) { testWrite(t, client, c) })
+		t.Run("Read", func(t *testing.T) { testRead(t, client, c) })
+		t.Run("Read-Unknown-Cache", func(t *testing.T) { testReadUnknown(t, c) })
+		t.Run("ReadMulti", func(t *testing.T) { testReadMulti(t, client, c) })
+		t.Run("Incr", func(t *testing.T) { testIncr(t, c) })
+		t.Run("Expire", func(t *testing.T) { testExpire(t, client, c) })
+		t.Run("Delete", func(t *testing.T) { testDelete(t, client, c) })
+		t.Run("Delete-Unknown", func(t *testing.T) { testDeleteUnknown(t, c) })
+	})
+
 	os.Clearenv()
 }
 
@@ -204,6 +219,32 @@ func NewRedisClusterConnector() Connector {
 
 func NewRedisCluster() *redis.Redis {
 	return redis.New(&redis.Option{Addrs: redisClusterAddrs(), ReadOnly: true})
+}
+
+func redisSentinelMaster() string {
+	if name := os.Getenv("REDIS_SENTINEL_MASTER"); name != "" {
+		return name
+	}
+
+	return "redis-master"
+}
+
+func redisSentinelAddrs() []string {
+	if addr := os.Getenv("REDIS_SENTINEL_ADDR"); addr != "" {
+		return strings.Split(addr, ",")
+	}
+
+	return []string{
+		"127.0.0.1:26379",
+	}
+}
+
+func NewRedisSentinelConnector() Connector {
+	return redisc.NewFailoverClient(&redisc.FailoverOptions{MasterName: redisSentinelMaster(), SentinelAddrs: redisSentinelAddrs()})
+}
+
+func NewRedisSentinel() *redis.Redis {
+	return redis.New(&redis.Option{MasterName: redisSentinelMaster(), Addrs: redisSentinelAddrs()})
 }
 
 func loadFixtures(client Connector) {
