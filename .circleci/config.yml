@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/bukalapak/ottoman
+    working_directory: /ottoman
     docker:
       - image: circleci/golang:1.12-stretch
       - image: memcached:1.4-alpine
@@ -19,7 +19,6 @@ jobs:
           command: redis-server .circleci/sentinel.conf --sentinel
           background: true
       - run: go version
-      - run: go get -t ./...
       - run: make check
       - run: make coverage
       - run: bash <(curl -s https://codecov.io/bash)
