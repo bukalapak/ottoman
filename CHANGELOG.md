@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2019-04-24
+
+### Added
+
+- Redis: sentinel support
+
 ## [1.3.0] - 2019-04-15
 
 ### Changed
