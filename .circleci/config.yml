@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: /ottoman
+    working_directory: ~/ottoman
     docker:
       - image: circleci/golang:1.12-stretch
       - image: memcached:1.4-alpine
