@@ -33,9 +33,7 @@ func TestNormalizeMulti(t *testing.T) {
 		"bar:foo/bar",
 	}
 
-	var results []string
-
-	results = cache.NormalizeMulti(data, "")
+	results := cache.NormalizeMulti(data, "")
 	assert.Equal(t, []string{"foo/bar", "foo/bar", "foo/bar"}, results)
 
 	results = cache.NormalizeMulti(data, "api")
