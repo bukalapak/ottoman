@@ -1,0 +1,13 @@
+run:
+  skip-dirs:
+    - x/http
+linters:
+  presets:
+    - bugs
+    - complexity
+    - format
+    - style
+    - unused
+linters:
+  disable:
+    - errcheck

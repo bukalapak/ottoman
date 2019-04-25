@@ -2,14 +2,11 @@ SHELL := /bin/bash
 
 export PATH := $(shell pwd)/bin:${PATH}
 
-tool-metalinter:
-	@curl -sfL https://raw.githubusercontent.com/bukalapak/toolkit-installer/master/gometalinter.sh | sh
-check: check-metalinter
-check-metalinter: tool-metalinter
-	./bin/gometalinter --fast --config=metalinter.json ./...
-check-all: check-all-metalinter
-check-all-metalinter: tool-metalinter
-	./bin/gometalinter --config=metalinter.json ./...
+tool-lint:
+	@curl -sfL https://raw.githubusercontent.com/bukalapak/toolkit-installer/master/golangci-lint.sh | sh
+check: check-lint
+check-lint: tool-lint
+	./bin/golangci-lint run
 update-x-http:
 	./scripts/x-http-updater.sh
 test:
