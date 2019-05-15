@@ -22,6 +22,7 @@ type Proxy struct {
 	target        Targeter
 	FlushInterval time.Duration
 	Logger        *log.Logger
+	ErrorHandler  func(http.ResponseWriter, *http.Request, error)
 }
 
 func NewProxy(target Targeter) *Proxy {
@@ -39,6 +40,7 @@ func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, n Transformer) {
 		ModifyResponse: n.ModifyResponse,
 		FlushInterval:  p.FlushInterval,
 		ErrorLog:       p.Logger,
+		ErrorHandler:   p.ErrorHandler,
 	}
 
 	proxy.ServeHTTP(w, r)
