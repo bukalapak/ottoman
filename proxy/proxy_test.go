@@ -3,6 +3,7 @@ package proxy_test
 import (
 	"fmt"
 	"io"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -66,6 +67,23 @@ func TestProxy(t *testing.T) {
 			assert.Contains(t, rec.Body.String(), fmt.Sprintf("chunk #%d", i))
 		}
 	})
+
+	t.Run("Proxy-Bad-Gateway", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+
+		x := proxy.NewProxy(targeter(backend))
+		x.ErrorHandler = func(rw http.ResponseWriter, r *http.Request, err error) {
+			rw.Header().Set("X-Fail", "1")
+			rw.WriteHeader(http.StatusBadGateway)
+		}
+
+		x.Forward(rec, req, FailingTransform{})
+
+		assert.Equal(t, backend.URL, x.Target().String())
+		assert.Equal(t, http.StatusBadGateway, rec.Code)
+		assert.Equal(t, "1", rec.Header().Get("X-Fail"))
+	})
 }
 
 func targeter(backend *httptest.Server) proxy.Targeter {
@@ -91,5 +109,23 @@ func (s Transform) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func (s Transform) ModifyResponse(resp *http.Response) error {
 	resp.Header.Set("X-Modified", "1")
+	return nil
+}
+
+type FailingTransform struct{}
+
+func (s FailingTransform) Director(t proxy.Targeter) func(r *http.Request) {
+	return func(r *http.Request) {
+		u := t.Target()
+		r.URL.Scheme = u.Scheme
+		r.URL.Host = u.Host
+	}
+}
+
+func (s FailingTransform) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("some error")
+}
+
+func (s FailingTransform) ModifyResponse(resp *http.Response) error {
 	return nil
 }
