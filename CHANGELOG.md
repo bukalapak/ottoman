@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.0] - 2019-05-15
+
+### Added
+
+- Add ErrorHandler to Proxy
+
 ## [1.4.0] - 2019-04-24
 
 ### Added
