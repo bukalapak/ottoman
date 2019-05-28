@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0] - 2019-05-28
+
+### Added
+
+- Helper `jose.Decode` and `jose.Decrypt`
+- New interface `jose.Encryption` and `jose.Signature` as the result of `jose.Stamper` expansion.
+
 ## [1.5.0] - 2019-05-15
 
 ### Added
