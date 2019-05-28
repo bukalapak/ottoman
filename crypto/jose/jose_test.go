@@ -8,14 +8,35 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	_, err := jose.New("", rsaPrivateKey)
-	assert.NotNil(t, err)
+	t.Run("New", func(t *testing.T) {
+		_, err := jose.New("", rsaPrivateKey)
+		assert.NotNil(t, err)
 
-	_, err = jose.New(rsaPublicKey, "")
-	assert.NotNil(t, err)
+		_, err = jose.New(rsaPublicKey, "")
+		assert.NotNil(t, err)
+
+		_, err = jose.New("", "")
+		assert.NotNil(t, err)
+	})
+
+	t.Run("NewSignature", func(t *testing.T) {
+		_, err := jose.NewSignature("", rsaPrivateKey)
+		assert.NotNil(t, err)
+
+		_, err = jose.NewSignature(rsaPublicKey, "")
+		assert.NotNil(t, err)
+	})
+
+	t.Run("NewEncryption", func(t *testing.T) {
+		_, err := jose.NewEncryption("", rsaPrivateKey)
+		assert.NotNil(t, err)
+
+		_, err = jose.NewEncryption(rsaPublicKey, "")
+		assert.NotNil(t, err)
+	})
 }
 
-func TestEncodeDecode(t *testing.T) {
+func TestSignature(t *testing.T) {
 	b := []byte(`{"foo":"bar"}`)
 	n, err := jose.New(rsaPublicKey, rsaPrivateKey)
 	assert.Nil(t, err)
@@ -31,9 +52,17 @@ func TestEncodeDecode(t *testing.T) {
 	out, err := n.Decode("x")
 	assert.NotNil(t, err)
 	assert.Nil(t, out)
+
+	data2, err := jose.Decode(rsaPublicKey, token)
+	assert.Nil(t, err)
+	assert.Equal(t, b, data2)
+
+	data3, err := jose.Decode("", token)
+	assert.NotNil(t, err)
+	assert.Nil(t, data3)
 }
 
-func TestEncryptDecrypt(t *testing.T) {
+func TestEncryption(t *testing.T) {
 	b := []byte(`{"foo":"bar"}`)
 	n, err := jose.New(rsaPublicKey, rsaPrivateKey)
 	assert.Nil(t, err)
@@ -49,4 +78,12 @@ func TestEncryptDecrypt(t *testing.T) {
 	out, err := n.Decrypt("x")
 	assert.NotNil(t, err)
 	assert.Nil(t, out)
+
+	data2, err := jose.Decrypt(rsaPrivateKey, token)
+	assert.Nil(t, err)
+	assert.Equal(t, b, data2)
+
+	data3, err := jose.Decrypt("", token)
+	assert.NotNil(t, err)
+	assert.Nil(t, data3)
 }
