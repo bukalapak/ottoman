@@ -3,6 +3,7 @@ package jose
 
 import (
 	"crypto/rsa"
+	"errors"
 	"strings"
 
 	"gopkg.in/square/go-jose.v2"
@@ -64,7 +65,7 @@ func (s *signatureStandard) Encode(payload []byte) (string, error) {
 
 // Decode parses a signed message in compact or full serialization format.
 func (s *signatureStandard) Decode(data string) ([]byte, error) {
-	return decode(s.publicKey, data)
+	return Decode(s.publicKey, data)
 }
 
 // New returns a Encryption. It's using predefined key, compression and algorithm.
@@ -93,7 +94,7 @@ func (s *encryptionStandard) Encrypt(payload []byte) (string, error) {
 
 // Decrypt parses an encrypted message in compact or full serialization format.
 func (s *encryptionStandard) Decrypt(data string) ([]byte, error) {
-	return decrypt(s.privateKey, data)
+	return Decrypt(s.privateKey, data)
 }
 
 // New returns a Stamper. It's using predefined key, compression and algorithm.
@@ -133,26 +134,11 @@ func (s *standard) Decrypt(data string) ([]byte, error) {
 }
 
 // Decode parses a signed message in compact or full serialization format.
-func Decode(publicKey string, data string) ([]byte, error) {
-	pub, err := RSAPublicKey(readCertificate(publicKey))
-	if err != nil {
-		return nil, err
+func Decode(pub *rsa.PublicKey, data string) ([]byte, error) {
+	if pub == nil {
+		return nil, errors.New("missing rsa public key")
 	}
 
-	return decode(pub, data)
-}
-
-// Decrypt parses an encrypted message in compact or full serialization format.
-func Decrypt(privateKey string, data string) ([]byte, error) {
-	prv, err := RSAPrivateKey(readCertificate(privateKey))
-	if err != nil {
-		return nil, err
-	}
-
-	return decrypt(prv, data)
-}
-
-func decode(pub *rsa.PublicKey, data string) ([]byte, error) {
 	token, err := jose.ParseSigned(data)
 	if err != nil {
 		return nil, err
@@ -161,7 +147,12 @@ func decode(pub *rsa.PublicKey, data string) ([]byte, error) {
 	return token.Verify(pub)
 }
 
-func decrypt(prv *rsa.PrivateKey, data string) ([]byte, error) {
+// Decrypt parses an encrypted message in compact or full serialization format.
+func Decrypt(prv *rsa.PrivateKey, data string) ([]byte, error) {
+	if prv == nil {
+		return nil, errors.New("missing rsa private key")
+	}
+
 	token, err := jose.ParseEncrypted(data)
 	if err != nil {
 		return nil, err

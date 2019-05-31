@@ -53,11 +53,13 @@ func TestSignature(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, out)
 
-	data2, err := jose.Decode(rsaPublicKey, token)
+	pub, _ := jose.RSAPublicKey([]byte(rsaPublicKey))
+
+	data2, err := jose.Decode(pub, token)
 	assert.Nil(t, err)
 	assert.Equal(t, b, data2)
 
-	data3, err := jose.Decode("", token)
+	data3, err := jose.Decode(nil, token)
 	assert.NotNil(t, err)
 	assert.Nil(t, data3)
 }
@@ -79,11 +81,13 @@ func TestEncryption(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, out)
 
-	data2, err := jose.Decrypt(rsaPrivateKey, token)
+	prv, _ := jose.RSAPrivateKey([]byte(rsaPrivateKey))
+
+	data2, err := jose.Decrypt(prv, token)
 	assert.Nil(t, err)
 	assert.Equal(t, b, data2)
 
-	data3, err := jose.Decrypt("", token)
+	data3, err := jose.Decrypt(nil, token)
 	assert.NotNil(t, err)
 	assert.Nil(t, data3)
 }
