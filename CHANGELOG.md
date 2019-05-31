@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.0] - 2019-05-31
+
+### Updated
+
+- Signature of `jose.Decode` and `jose.Decrypt`, both using *rsa.PublicKey and *rsa.PrivateKey directly.
+
 ## [1.6.0] - 2019-05-28
 
 ### Added
