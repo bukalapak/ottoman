@@ -13,6 +13,10 @@ func TestTimestamp(t *testing.T) {
 	testTimestamp(t, []byte("1490318752"))
 }
 
+func TestTimestamp_format1(t *testing.T) {
+	testTimestamp(t, []byte(`"2017-03-24 08:25:52 +0700"`))
+}
+
 func TestTimestamp_fallback(t *testing.T) {
 	testTimestamp(t, []byte(`"2017-03-24T08:25:52+07:00"`))
 }
