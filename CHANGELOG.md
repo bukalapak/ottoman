@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.0] - 2019-06-24
+
+### Added
+
+- Support on `json.Timestamp` for time format "2006-01-02 15:04:05 -0700"
+
 ## [1.7.0] - 2019-05-31
 
 ### Updated
