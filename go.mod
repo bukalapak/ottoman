@@ -9,6 +9,7 @@ require (
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-restit/lzjson v0.0.0-20161206095556-efe3c53acc68
+	github.com/google/go-cmp v0.3.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/honeybadger-io/honeybadger-go v0.4.0
 	github.com/kevinburke/go.uuid v1.2.0

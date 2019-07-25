@@ -1,4 +1,4 @@
-package tracker_test
+package datadog_test
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bukalapak/ottoman/tracker"
+	"github.com/bukalapak/ottoman/tracker/datadog"
 )
 
 type DummyHTTP struct {
@@ -29,13 +30,13 @@ func newDummyHTTP(statusCode int, err error) *DummyHTTP {
 	}
 }
 
-// NewDDCountSeries is function to simplify count creation
-func newDDCountSeries(name string, tags []string) *tracker.DDSeries {
-	return &tracker.DDSeries{
-		Series: []tracker.DDMetric{
+// NewCountSeries is function to simplify count creation
+func newCountSeries(name string, tags []string) *datadog.Series {
+	return &datadog.Series{
+		Series: []datadog.Metric{
 			{
 				Metric: name,
-				Type:   tracker.Count,
+				Type:   datadog.Count,
 				Points: [][2]int64{{time.Now().Unix(), 1}},
 				Tags:   tags,
 			},
@@ -44,11 +45,10 @@ func newDDCountSeries(name string, tags []string) *tracker.DDSeries {
 }
 
 func TestDatadog_Track(t *testing.T) {
-	invalidPayload := make(chan int)
 	type fields struct {
 		ServiceName string
 		apiKey      string
-		option      tracker.DDOption
+		option      datadog.Option
 	}
 	type args struct {
 		payload interface{}
@@ -60,33 +60,33 @@ func TestDatadog_Track(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		"ok": {
-			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(200, nil)}},
-			args{newDDCountSeries("name", []string{"tags"})},
+			fields{"testName", "apikey", datadog.Option{Transport: newDummyHTTP(200, nil)}},
+			args{newCountSeries("name", []string{"tags"})},
 			false,
 		},
 		"ok with nil http": {
-			fields{"testName", "apikey", tracker.DDOption{Timeout: time.Second}},
-			args{newDDCountSeries("name", []string{"tags"})},
+			fields{"testName", "apikey", datadog.Option{Timeout: time.Second}},
+			args{newCountSeries("name", []string{"tags"})},
 			false,
 		},
 		"empty payload": {
-			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(0, tracker.EmptyPayloadErr)}},
+			fields{"testName", "apikey", datadog.Option{Transport: newDummyHTTP(0, tracker.EmptyPayloadErr)}},
 			args{},
 			true,
 		},
 		"fail request": {
-			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(0, tracker.EmptyPayloadErr)}},
-			args{newDDCountSeries("name", []string{"tags"})},
+			fields{"testName", "apikey", datadog.Option{Transport: newDummyHTTP(0, tracker.EmptyPayloadErr)}},
+			args{newCountSeries("name", []string{"tags"})},
 			true,
 		},
 		"bad request": {
-			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(401, nil)}},
-			args{newDDCountSeries("name", []string{"tags"})},
+			fields{"testName", "apikey", datadog.Option{Transport: newDummyHTTP(401, nil)}},
+			args{newCountSeries("name", []string{"tags"})},
 			true,
 		},
 		"bad payload": {
-			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(401, nil)}},
-			args{invalidPayload},
+			fields{"testName", "apikey", datadog.Option{Transport: newDummyHTTP(401, nil)}},
+			args{make(chan int)},
 			true,
 		},
 	}
@@ -99,7 +99,7 @@ func TestDatadog_Track(t *testing.T) {
 				}()
 				http.DefaultTransport = newDummyHTTP(200, nil)
 			}
-			a := tracker.NewDD(
+			a := datadog.New(
 				tt.fields.ServiceName,
 				tt.fields.apiKey,
 				tt.fields.option,

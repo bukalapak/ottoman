@@ -1,4 +1,4 @@
-package tracker_test
+package datadog_test
 
 import (
 	"fmt"
@@ -6,21 +6,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bukalapak/ottoman/tracker"
+	"github.com/bukalapak/ottoman/tracker/datadog"
 )
 
 func Example_datadogTracker() {
-	tc := tracker.NewDD("service_name",
+	tc := datadog.New("service_name",
 		"this api key is secret",
-		tracker.DDOption{
+		datadog.Option{
 			Transport: http.DefaultTransport,
 			Timeout:   time.Second * 1,
 		})
-	payload := tracker.DDSeries{
-		Series: []tracker.DDMetric{
+	payload := datadog.Series{
+		Series: []datadog.Metric{
 			{
 				Metric: "service_name.command.call",
-				Type:   tracker.Count,
+				Type:   datadog.Count,
 				Points: [][2]int64{{time.Now().Unix(), 1}},
 				Tags: []string{
 					"environment:production",
