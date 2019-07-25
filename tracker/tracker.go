@@ -1,3 +1,4 @@
+// package tracker implements sending tracking data to monitoring server
 package tracker
 
 import (
