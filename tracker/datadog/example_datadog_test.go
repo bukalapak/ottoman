@@ -32,7 +32,6 @@ func Example_datadogTracker() {
 	}
 	resp, err := tc.Track(payload)
 	if err != nil {
-		// do something or just log error
 		log.Println(err)
 	}
 	fmt.Println(resp)

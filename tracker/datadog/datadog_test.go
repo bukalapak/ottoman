@@ -58,7 +58,6 @@ func TestDatadog_Track(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		"ok": {
 			fields{"testName", "apikey", datadog.Option{Transport: newDummyHTTP(200, nil)}},
 			args{newCountSeries("name", []string{"tags"})},
@@ -99,6 +98,7 @@ func TestDatadog_Track(t *testing.T) {
 				}()
 				http.DefaultTransport = newDummyHTTP(200, nil)
 			}
+
 			a := datadog.New(
 				tt.fields.ServiceName,
 				tt.fields.apiKey,

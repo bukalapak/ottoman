@@ -38,7 +38,6 @@ func TestDummy_Track(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		"ok":           {args{dummyPayload{"ottoman"}}, []byte(`{"Name":"ottoman"}`), false},
 		"fail marshal": {args{make(chan int)}, nil, true},
 	}

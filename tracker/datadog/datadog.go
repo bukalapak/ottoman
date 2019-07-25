@@ -89,10 +89,9 @@ func (dd *Datadog) Track(payload interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed unmarshal")
 	}
+
 	reader := bytes.NewReader(buffer)
-
 	request, _ := http.NewRequest("POST", fmt.Sprintf(ddMetricsURL, dd.apiKey), reader)
-
 	request.Header.Set("Content-Type", "application/json")
 	resp, err := dd.option.httpClient().Do(request)
 	if err != nil {
@@ -105,6 +104,5 @@ func (dd *Datadog) Track(payload interface{}) ([]byte, error) {
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-
 	return body, nil
 }
