@@ -1,6 +1,6 @@
 # Tracker
 
-Tracker is a golang library for sending tracker data to monitoring server
+Tracker is a golang library for sending metrics data to the monitoring server
 
 ## Usage
 
