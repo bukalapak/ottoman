@@ -15,7 +15,7 @@ type DummyHTTP struct {
 	Err  error
 }
 
-func (dh *DummyHTTP) Do(req *http.Request) (*http.Response, error) {
+func (dh *DummyHTTP) RoundTrip(req *http.Request) (*http.Response, error) {
 	return dh.Resp, dh.Err
 }
 
@@ -44,10 +44,11 @@ func newDDCountSeries(name string, tags []string) *tracker.DDSeries {
 }
 
 func TestDatadog_Track(t *testing.T) {
+	invalidPayload := make(chan int)
 	type fields struct {
 		ServiceName string
 		apiKey      string
-		httpClient  tracker.HTTPDoer
+		option      tracker.DDOption
 	}
 	type args struct {
 		payload interface{}
@@ -59,44 +60,49 @@ func TestDatadog_Track(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		"ok": {
-			fields{"testName", "apikey", newDummyHTTP(200, nil)},
+			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(200, nil)}},
 			args{newDDCountSeries("name", []string{"tags"})},
 			false,
 		},
 		"ok with nil http": {
-			fields{"testName", "apikey", nil},
+			fields{"testName", "apikey", tracker.DDOption{Timeout: time.Second}},
 			args{newDDCountSeries("name", []string{"tags"})},
 			false,
 		},
 		"empty payload": {
-			fields{"testName", "apikey", newDummyHTTP(0, tracker.EmptyPayloadErr)},
+			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(0, tracker.EmptyPayloadErr)}},
 			args{},
 			true,
 		},
 		"fail request": {
-			fields{"testName", "apikey", newDummyHTTP(0, tracker.EmptyPayloadErr)},
+			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(0, tracker.EmptyPayloadErr)}},
 			args{newDDCountSeries("name", []string{"tags"})},
 			true,
 		},
 		"bad request": {
-			fields{"testName", "apikey", newDummyHTTP(401, nil)},
+			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(401, nil)}},
 			args{newDDCountSeries("name", []string{"tags"})},
+			true,
+		},
+		"bad payload": {
+			fields{"testName", "apikey", tracker.DDOption{Transport: newDummyHTTP(401, nil)}},
+			args{invalidPayload},
 			true,
 		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			if tt.fields.httpClient == nil {
-				tmp := tracker.DefaultHTTPClient
+			if tt.fields.option.Transport == nil {
+				tmp := http.DefaultTransport
 				defer func() {
-					tracker.DefaultHTTPClient = tmp
+					http.DefaultTransport = tmp
 				}()
-				tracker.DefaultHTTPClient = newDummyHTTP(200, nil)
+				http.DefaultTransport = newDummyHTTP(200, nil)
 			}
 			a := tracker.NewDD(
 				tt.fields.ServiceName,
 				tt.fields.apiKey,
-				tt.fields.httpClient,
+				tt.fields.option,
 			)
 			if _, err := a.Track(tt.args.payload); (err != nil) != tt.wantErr {
 				t.Errorf("Datadog.Track() error = %v, wantErr %v", err, tt.wantErr)

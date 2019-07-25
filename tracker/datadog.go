@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-)
+	"time"
 
-var (
-	DefaultHTTPClient HTTPDoer = &http.Client{}
+	"github.com/pkg/errors"
 )
 
 type DDType string
@@ -21,6 +20,35 @@ const (
 
 	ddMetricsURL = "https://api.datadoghq.com/api/v1/series?api_key=%s"
 )
+
+// DDOption is the configuration option for the Datadog tracker.
+type DDOption struct {
+	Transport http.RoundTripper
+	Timeout   time.Duration
+}
+
+func (dd DDOption) httpClient() *http.Client {
+	return &http.Client{
+		Transport: dd.httpTransport(),
+		Timeout:   dd.httpTimeout(),
+	}
+}
+
+func (n DDOption) httpTransport() http.RoundTripper {
+	if n.Transport == nil {
+		return http.DefaultTransport
+	}
+
+	return n.Transport
+}
+
+func (n DDOption) httpTimeout() time.Duration {
+	if n.Timeout == 0 {
+		return 3 * time.Second
+	}
+
+	return n.Timeout
+}
 
 // DatadogMetric represent single metric of series
 type DDMetric struct {
@@ -42,17 +70,12 @@ type DDSeries struct {
 type Datadog struct {
 	ServiceName string
 	apiKey      string
-	httpClient  HTTPDoer
+	option      DDOption
 }
 
 // NewDD returns a datadog client with a custom http client
-func NewDD(serviceName, apiKey string, httpClient HTTPDoer) *Datadog {
-
-	if httpClient == nil {
-		httpClient = DefaultHTTPClient
-	}
-
-	return &Datadog{ServiceName: serviceName, apiKey: apiKey, httpClient: httpClient}
+func NewDD(serviceName, apiKey string, option DDOption) *Datadog {
+	return &Datadog{ServiceName: serviceName, apiKey: apiKey, option: option}
 }
 
 func (dd *Datadog) Track(payload interface{}) ([]byte, error) {
@@ -61,23 +84,26 @@ func (dd *Datadog) Track(payload interface{}) ([]byte, error) {
 	}
 
 	var mapB []byte
-	mapB, _ = json.Marshal(payload)
+	mapB, err := json.Marshal(payload)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed unmarshal")
+	}
 	reader := bytes.NewReader(mapB)
 
 	request, _ := http.NewRequest("POST", fmt.Sprintf(ddMetricsURL, dd.apiKey), reader)
 
 	request.Header.Set("Content-Type", "application/json")
-
-	resp, err := dd.httpClient.Do(request)
+	resp, err := dd.option.httpClient().Do(request)
 	if err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
 		return nil, BadRequestErr
 	}
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
 
 	return body, nil
 }

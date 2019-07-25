@@ -11,25 +11,30 @@ import (
 )
 
 func main(){
-   var tc tracker.Tracker
-   tc := tracker.NewDD("blcg", "this api key is secret")
-   payload := tracker.DDSeries{
+    tc := tracker.NewDD("service_name",
+        "this api key is secret",
+        tracker.DDOption{
+            Transport: http.DefaultTransport,
+            Timeout:   time.Second * 1,
+        })
+    payload := tracker.DDSeries{
         Series: []tracker.DDMetric{
             {
-                Metric: "blcg.command.call",
+                Metric: "service_name.command.call",
                 Type:   tracker.Count,
                 Points: [][2]int64{{time.Now().Unix(), 1}},
-                Tags:   []string{
-                    "environtment:production",
+                Tags: []string{
+                    "environment:production",
                     "version:1",
-                    "command:gen all",
+                    "sub_command:mock",
                 },
             },
         },
     }
-   resp, err:= tc.Track(payload)
-   if err!=nil{
-       // do something or just log error
+    resp, err := tc.Track(payload)
+    if err != nil {
+        // do something or just log error
+        log.Println(err)
     }
     fmt.Println(resp)
 }
