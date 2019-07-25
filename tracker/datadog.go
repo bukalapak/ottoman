@@ -27,27 +27,27 @@ type DDOption struct {
 	Timeout   time.Duration
 }
 
-func (dd DDOption) httpClient() *http.Client {
+func (do DDOption) httpClient() *http.Client {
 	return &http.Client{
-		Transport: dd.httpTransport(),
-		Timeout:   dd.httpTimeout(),
+		Transport: do.httpTransport(),
+		Timeout:   do.httpTimeout(),
 	}
 }
 
-func (n DDOption) httpTransport() http.RoundTripper {
-	if n.Transport == nil {
+func (do DDOption) httpTransport() http.RoundTripper {
+	if do.Transport == nil {
 		return http.DefaultTransport
 	}
 
-	return n.Transport
+	return do.Transport
 }
 
-func (n DDOption) httpTimeout() time.Duration {
-	if n.Timeout == 0 {
+func (do DDOption) httpTimeout() time.Duration {
+	if do.Timeout == 0 {
 		return 3 * time.Second
 	}
 
-	return n.Timeout
+	return do.Timeout
 }
 
 // DatadogMetric represent single metric of series
