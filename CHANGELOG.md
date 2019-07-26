@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0] - 2019-07-26
+
+### Added
+
+- `Tracker` interface
+- Datadog tracker implementation
+
 ## [1.8.0] - 2019-06-24
 
 ### Added
