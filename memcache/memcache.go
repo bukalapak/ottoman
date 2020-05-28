@@ -11,13 +11,15 @@ import (
 )
 
 const (
-	defaultTimeout = 100 * time.Millisecond
+	defaultTimeout      = 100 * time.Millisecond
+	defaultMaxIdleConns = 2
 )
 
 // Option represents configurable configuration for memcache client.
 type Option struct {
-	Compress bool
-	Timeout  time.Duration
+	Compress     bool
+	Timeout      time.Duration
+	MaxIdleConns int
 }
 
 // Memcache is a memcache client. It is safe for unlocked use by multiple concurrent goroutines.
@@ -30,6 +32,7 @@ type Memcache struct {
 func New(ss []string, option Option) *Memcache {
 	c := memcache.New(ss...)
 	c.Timeout = netTimeout(option.Timeout)
+	c.MaxIdleConns = maxIdleConns(option.MaxIdleConns)
 
 	return &Memcache{client: c, option: option}
 }
@@ -80,6 +83,11 @@ func (c *Memcache) Name() string {
 	return "Memcached"
 }
 
+// MaxIdleConns returns client's cache MaxIdleConns option value.
+func (c *Memcache) MaxIdleConns() int {
+	return c.client.MaxIdleConns
+}
+
 // Delete deletes the item for given key.
 func (c *Memcache) Delete(key string) error {
 	return c.client.Delete(key)
@@ -124,4 +132,12 @@ func netTimeout(timeout time.Duration) time.Duration {
 	}
 
 	return defaultTimeout
+}
+
+func maxIdleConns(maxIdleConns int) int {
+	if maxIdleConns > 0 {
+		return maxIdleConns
+	}
+
+	return defaultMaxIdleConns
 }

@@ -23,6 +23,16 @@ func TestMemcache(t *testing.T) {
 		assert.Equal(t, "Memcached", c.Name())
 	})
 
+	t.Run("MaxIdleConns", func(t *testing.T) {
+		c := memcache.New([]string{addr}, memcache.Option{})
+		assert.Equal(t, 2, c.MaxIdleConns())
+
+		c2 := memcache.New([]string{addr}, memcache.Option{
+			MaxIdleConns: 20,
+		})
+		assert.Equal(t, 20, c2.MaxIdleConns())
+	})
+
 	t.Run("Write", func(t *testing.T) {
 		c := memcache.New([]string{addr}, memcache.Option{
 			Compress: false,

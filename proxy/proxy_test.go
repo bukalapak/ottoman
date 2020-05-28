@@ -1,9 +1,9 @@
 package proxy_test
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
