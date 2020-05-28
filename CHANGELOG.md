@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.10.0] - 2020-05-28
+
+### Added
+
+- add option to configure `maxIdleConns` on Memcached client
+
 ## [1.9.0] - 2019-07-26
 
 ### Added
