@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	redisc "github.com/go-redis/redis"
+	redisc "github.com/go-redis/redis/v7"
 )
 
 var errCacheMiss = errors.New("redis: cache miss")
