@@ -1,10 +1,16 @@
 # Changelog
 
+## [1.11.0] - 2020-08-24
+
+### Updated
+
+- Bump go-redis client to v7 to support redis6 cluster
+
 ## [1.10.0] - 2020-05-28
 
 ### Added
 
-- add option to configure `maxIdleConns` on Memcached client
+- Add option to configure `maxIdleConns` on Memcached client
 
 ## [1.9.0] - 2019-07-26
 
