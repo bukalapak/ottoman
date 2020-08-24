@@ -8,7 +8,7 @@ import (
 
 	"github.com/bukalapak/ottoman/redis"
 	envx "github.com/bukalapak/ottoman/x/env"
-	redisc "github.com/go-redis/redis"
+	redisc "github.com/go-redis/redis/v7"
 	"github.com/stretchr/testify/assert"
 )
 
