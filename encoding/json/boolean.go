@@ -6,7 +6,7 @@ import (
 )
 
 type Boolean struct {
-	b bool
+	B bool
 }
 
 func (v *Boolean) UnmarshalJSON(b []byte) error {
@@ -18,8 +18,8 @@ func (v *Boolean) UnmarshalJSON(b []byte) error {
 
 	s, _ := strconv.Unquote(string(b))
 
-	if v.b, err = strconv.ParseBool(s); err != nil {
-		if v.b, err = strconv.ParseBool(string(b)); err != nil {
+	if v.B, err = strconv.ParseBool(s); err != nil {
+		if v.B, err = strconv.ParseBool(string(b)); err != nil {
 			return err
 		}
 	}
@@ -28,9 +28,9 @@ func (v *Boolean) UnmarshalJSON(b []byte) error {
 }
 
 func (v Boolean) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.b)
+	return json.Marshal(v.B)
 }
 
 func (v Boolean) Bool() bool {
-	return v.b
+	return v.B
 }
