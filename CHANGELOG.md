@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.12.0] - 2020-09-10
+
+### Updated
+
+- Update json.Boolean field member as public
+
 ## [1.11.0] - 2020-08-24
 
 ### Updated
