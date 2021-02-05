@@ -13,6 +13,7 @@ import (
 const (
 	defaultTimeout      = 100 * time.Millisecond
 	defaultMaxIdleConns = 2
+	defaultMaxAttempt   = 3
 )
 
 // Option represents configurable configuration for memcache client.
@@ -20,6 +21,7 @@ type Option struct {
 	Compress     bool
 	Timeout      time.Duration
 	MaxIdleConns int
+	MaxAttempt   int
 }
 
 // Memcache is a memcache client. It is safe for unlocked use by multiple concurrent goroutines.
@@ -34,6 +36,10 @@ func New(ss []string, option Option) *Memcache {
 	c.Timeout = netTimeout(option.Timeout)
 	c.MaxIdleConns = maxIdleConns(option.MaxIdleConns)
 
+	if !(option.MaxAttempt > 0) {
+		option.MaxAttempt = defaultMaxAttempt
+	}
+
 	return &Memcache{client: c, option: option}
 }
 
@@ -46,13 +52,31 @@ func (c *Memcache) Write(key string, value []byte, expiration time.Duration) err
 		Expiration: int32(expiration.Seconds()),
 	}
 
-	return c.client.Set(item)
+	var err error
+
+	for i := 0; i < c.option.MaxAttempt; i++ {
+		c.client.Set(item)
+		if !timeoutError(err) {
+			return err
+		}
+	}
+
+	return err
 }
 
 // Read reads the item for given key.
 // It's automatically decode item. Value depending on the client option.
 func (c *Memcache) Read(key string) ([]byte, error) {
-	item, err := c.client.Get(key)
+	var item *memcache.Item
+	var err error
+
+	for i := 0; i < c.option.MaxAttempt; i++ {
+		item, err = c.client.Get(key)
+		if !timeoutError(err) {
+			break
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +87,16 @@ func (c *Memcache) Read(key string) ([]byte, error) {
 // ReadMulti is a batch version of Read.
 // The returned map have exact length as provided keys. For cache miss, an empty byte will be returned.
 func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
-	m, err := c.client.GetMulti(keys)
+	var m map[string]*memcache.Item
+	var err error
+
+	for i := 0; i < c.option.MaxAttempt; i++ {
+		m, err = c.client.GetMulti(keys)
+		if !timeoutError(err) {
+			break
+		}
+	}
+
 	if err != nil {
 		return map[string][]byte{}, err
 	}
@@ -90,7 +123,16 @@ func (c *Memcache) MaxIdleConns() int {
 
 // Delete deletes the item for given key.
 func (c *Memcache) Delete(key string) error {
-	return c.client.Delete(key)
+	var err error
+
+	for i := 0; i < c.option.MaxAttempt; i++ {
+		err = c.client.Delete(key)
+		if !timeoutError(err) {
+			return err
+		}
+	}
+
+	return err
 }
 
 func (c *Memcache) readValue(data []byte) (n []byte, err error) {
@@ -140,4 +182,13 @@ func maxIdleConns(maxIdleConns int) int {
 	}
 
 	return defaultMaxIdleConns
+}
+
+func timeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, ok := err.(*memcache.ConnectTimeoutError)
+	return ok
 }
