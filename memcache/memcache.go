@@ -183,11 +183,7 @@ func (c *Memcache) withRetryOnTimeout(fn func() error) error {
 		}
 	}
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func optionDefaultValue(option Option) Option {

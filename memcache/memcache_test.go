@@ -241,6 +241,7 @@ func TestMemcache(t *testing.T) {
 		c := memcache.NewWithClient(mc, memcache.Option{
 			Timeout: 100 * time.Millisecond,
 			Compress: false,
+			MaxAttempt: 3,
 		})
 
 		mc.On("Set", &gomemcache.Item{
@@ -267,8 +268,6 @@ func TestMemcache(t *testing.T) {
 		err = c.Delete("foo")
 		mc.AssertNumberOfCalls(t, "Delete", 3)
 		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
-
-		cleanFixtures(client)
 	})
 
 	os.Clearenv()
