@@ -31,8 +31,6 @@ type MemcacheClient interface {
 	Delete(string) error
 }
 
-type t func(*memcache.Item) error
-
 // Memcache is a memcache client. It is safe for unlocked use by multiple concurrent goroutines.
 type Memcache struct {
 	client MemcacheClient
