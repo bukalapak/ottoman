@@ -12,11 +12,48 @@ import (
 	gomemcache "github.com/bradfitz/gomemcache/memcache"
 	"github.com/bukalapak/ottoman/memcache"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+type MockMemcacheClient struct {
+	mock.Mock
+}
+
+func (mc *MockMemcacheClient) Set(i *gomemcache.Item) error {
+	args := mc.Called(i)
+	err, _ := args.Get(0).(error)
+
+	return err
+}
+
+func (mc *MockMemcacheClient) Get(key string) (*gomemcache.Item, error) {
+	args := mc.Called(key)
+
+	item, _ := args.Get(0).(*gomemcache.Item)
+	err,  _ := args.Get(1).(error)
+
+	return item, err
+}
+
+func (mc *MockMemcacheClient) GetMulti(keys []string) (map[string]*gomemcache.Item, error) {
+	args := mc.Called(keys)
+	items, _ := args.Get(0).(map[string]*gomemcache.Item)
+	err, _ := args.Get(1).(error)
+
+	return items, err
+}
+
+func (mc *MockMemcacheClient) Delete(key string) error {
+	args := mc.Called(key)
+	err, _ := args.Get(0).(error)
+
+	return err
+}
 
 func TestMemcache(t *testing.T) {
 	addr := memcachedAddr()
 	client := gomemcache.New(addr)
+
 
 	t.Run("Name", func(t *testing.T) {
 		c := memcache.New([]string{addr}, memcache.Option{})
@@ -196,6 +233,42 @@ func TestMemcache(t *testing.T) {
 
 		err := c.Delete("boo")
 		assert.Error(t, gomemcache.ErrCacheMiss, err.Error())
+	})
+
+	t.Run("Retry-On-Timeout", func(t *testing.T) {
+		mc := &MockMemcacheClient{}
+
+		c := memcache.NewWithClient(mc, memcache.Option{
+			Timeout: 100 * time.Millisecond,
+			Compress: false,
+		})
+
+		mc.On("Set", &gomemcache.Item{
+			Key: "foo",
+			Value: []byte("bar"),
+			Expiration: 10,
+		}).Return(&gomemcache.ConnectTimeoutError{})
+		mc.On("Get", "foo").Return(nil, &gomemcache.ConnectTimeoutError{})
+		mc.On("GetMulti", []string{"foo", "bar"}).Return(nil, &gomemcache.ConnectTimeoutError{})
+		mc.On("Delete", "foo").Return(&gomemcache.ConnectTimeoutError{})
+
+		err := c.Write("foo", []byte("bar"), 10*time.Second)
+		mc.AssertNumberOfCalls(t, "Set", 3)
+		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+
+		_, err = c.Read("foo")
+		mc.AssertNumberOfCalls(t, "Get", 3)
+		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+
+		_, err = c.ReadMulti([]string{"foo", "bar"})
+		mc.AssertNumberOfCalls(t, "GetMulti", 3)
+		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+
+		err = c.Delete("foo")
+		mc.AssertNumberOfCalls(t, "Delete", 3)
+		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+
+		cleanFixtures(client)
 	})
 
 	os.Clearenv()

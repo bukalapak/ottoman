@@ -24,23 +24,36 @@ type Option struct {
 	MaxAttempt   int
 }
 
+type MemcacheClient interface {
+	Set(*memcache.Item) error
+	Get(string) (*memcache.Item, error)
+	GetMulti([]string) (map[string]*memcache.Item, error)
+	Delete(string) error
+}
+
+type t func(*memcache.Item) error
+
 // Memcache is a memcache client. It is safe for unlocked use by multiple concurrent goroutines.
 type Memcache struct {
-	client *memcache.Client
+	client MemcacheClient
 	option Option
 }
 
 // New returns a memcache client using the provided servers and options.
 func New(ss []string, option Option) *Memcache {
-	c := memcache.New(ss...)
-	c.Timeout = netTimeout(option.Timeout)
-	c.MaxIdleConns = maxIdleConns(option.MaxIdleConns)
+	option = optionDefaultValue(option)
 
-	if !(option.MaxAttempt > 0) {
-		option.MaxAttempt = defaultMaxAttempt
-	}
+	c := memcache.New(ss...)
+	c.Timeout = option.Timeout
+	c.MaxIdleConns = option.MaxIdleConns
 
 	return &Memcache{client: c, option: option}
+}
+
+func NewWithClient(mc MemcacheClient, option Option) *Memcache {
+	option = optionDefaultValue(option)
+
+	return &Memcache{client: mc, option: option}
 }
 
 // Write writes the item for given key.
@@ -51,16 +64,11 @@ func (c *Memcache) Write(key string, value []byte, expiration time.Duration) err
 		Value:      c.compress(value),
 		Expiration: int32(expiration.Seconds()),
 	}
-
-	var err error
-
-	for i := 0; i < c.option.MaxAttempt; i++ {
-		c.client.Set(item)
-		if !timeoutError(err) {
-			return err
-		}
+	fn := func() error {
+		return c.client.Set(item)
 	}
 
+	err := c.withRetryOnTimeout(fn)
 	return err
 }
 
@@ -70,12 +78,12 @@ func (c *Memcache) Read(key string) ([]byte, error) {
 	var item *memcache.Item
 	var err error
 
-	for i := 0; i < c.option.MaxAttempt; i++ {
+	fn := func() error {
 		item, err = c.client.Get(key)
-		if !timeoutError(err) {
-			break
-		}
+		return err
 	}
+
+	err = c.withRetryOnTimeout(fn)
 
 	if err != nil {
 		return nil, err
@@ -90,12 +98,12 @@ func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
 	var m map[string]*memcache.Item
 	var err error
 
-	for i := 0; i < c.option.MaxAttempt; i++ {
+	fn := func() error {
 		m, err = c.client.GetMulti(keys)
-		if !timeoutError(err) {
-			break
-		}
+		return err
 	}
+
+	err = c.withRetryOnTimeout(fn)
 
 	if err != nil {
 		return map[string][]byte{}, err
@@ -118,19 +126,18 @@ func (c *Memcache) Name() string {
 
 // MaxIdleConns returns client's cache MaxIdleConns option value.
 func (c *Memcache) MaxIdleConns() int {
-	return c.client.MaxIdleConns
+	return c.option.MaxIdleConns
 }
 
 // Delete deletes the item for given key.
 func (c *Memcache) Delete(key string) error {
 	var err error
 
-	for i := 0; i < c.option.MaxAttempt; i++ {
-		err = c.client.Delete(key)
-		if !timeoutError(err) {
-			return err
-		}
+	fn := func() error {
+		return c.client.Delete(key)
 	}
+
+	err = c.withRetryOnTimeout(fn)
 
 	return err
 }
@@ -168,6 +175,31 @@ func (c *Memcache) compress(data []byte) []byte {
 	return data
 }
 
+func (c *Memcache) withRetryOnTimeout(fn func() error) error {
+	var err error
+
+	for i := 0; i < c.option.MaxAttempt; i++ {
+		err = fn()
+		if !timeoutError(err) {
+			return err
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func optionDefaultValue(option Option) Option {
+	option.Timeout = netTimeout(option.Timeout)
+	option.MaxIdleConns = maxIdleConns(option.MaxIdleConns)
+	option.MaxAttempt = maxAttempt(option.MaxAttempt)
+
+	return option
+}
+
 func netTimeout(timeout time.Duration) time.Duration {
 	if timeout != 0 {
 		return timeout
@@ -182,6 +214,14 @@ func maxIdleConns(maxIdleConns int) int {
 	}
 
 	return defaultMaxIdleConns
+}
+
+func maxAttempt(maxAttempt int) int {
+	if maxAttempt > 0 {
+		return maxAttempt
+	}
+
+	return defaultMaxAttempt
 }
 
 func timeoutError(err error) bool {
