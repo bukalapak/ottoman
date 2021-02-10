@@ -48,6 +48,7 @@ func New(ss []string, option Option) *Memcache {
 	return &Memcache{client: c, option: option}
 }
 
+// NewWithClient returns a memcache client given the client instance
 func NewWithClient(mc MemcacheClient, option Option) *Memcache {
 	option = optionDefaultValue(option)
 
