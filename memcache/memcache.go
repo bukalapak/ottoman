@@ -24,6 +24,7 @@ type Option struct {
 	MaxAttempt   int
 }
 
+// MemcacheClient provides interface of memcache.
 type MemcacheClient interface {
 	Set(*memcache.Item) error
 	Get(string) (*memcache.Item, error)
