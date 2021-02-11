@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.0] - 2021-02-11
+
+### Added
+
+- Add `MemcacheClient` interface
+- Add configurable `MaxAttempt` on memcached
+- Add retry when timeout on memcached
+
 ## [1.12.0] - 2020-09-10
 
 ### Updated
