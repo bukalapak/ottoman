@@ -13,6 +13,7 @@ import (
 const (
 	defaultTimeout      = 100 * time.Millisecond
 	defaultMaxIdleConns = 2
+	defaultMaxAttempt   = 3
 )
 
 // Option represents configurable configuration for memcache client.
@@ -20,21 +21,39 @@ type Option struct {
 	Compress     bool
 	Timeout      time.Duration
 	MaxIdleConns int
+	MaxAttempt   int
+}
+
+// MemcacheClient provides interface of memcache.
+type MemcacheClient interface {
+	Set(*memcache.Item) error
+	Get(string) (*memcache.Item, error)
+	GetMulti([]string) (map[string]*memcache.Item, error)
+	Delete(string) error
 }
 
 // Memcache is a memcache client. It is safe for unlocked use by multiple concurrent goroutines.
 type Memcache struct {
-	client *memcache.Client
+	client MemcacheClient
 	option Option
 }
 
 // New returns a memcache client using the provided servers and options.
 func New(ss []string, option Option) *Memcache {
+	option = optionDefaultValue(option)
+
 	c := memcache.New(ss...)
-	c.Timeout = netTimeout(option.Timeout)
-	c.MaxIdleConns = maxIdleConns(option.MaxIdleConns)
+	c.Timeout = option.Timeout
+	c.MaxIdleConns = option.MaxIdleConns
 
 	return &Memcache{client: c, option: option}
+}
+
+// NewWithClient returns a memcache client given the client instance
+func NewWithClient(mc MemcacheClient, option Option) *Memcache {
+	option = optionDefaultValue(option)
+
+	return &Memcache{client: mc, option: option}
 }
 
 // Write writes the item for given key.
@@ -45,14 +64,27 @@ func (c *Memcache) Write(key string, value []byte, expiration time.Duration) err
 		Value:      c.compress(value),
 		Expiration: int32(expiration.Seconds()),
 	}
+	fn := func() error {
+		return c.client.Set(item)
+	}
 
-	return c.client.Set(item)
+	err := c.withRetryOnTimeout(fn)
+	return err
 }
 
 // Read reads the item for given key.
 // It's automatically decode item. Value depending on the client option.
 func (c *Memcache) Read(key string) ([]byte, error) {
-	item, err := c.client.Get(key)
+	var item *memcache.Item
+	var err error
+
+	fn := func() error {
+		item, err = c.client.Get(key)
+		return err
+	}
+
+	err = c.withRetryOnTimeout(fn)
+
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +95,16 @@ func (c *Memcache) Read(key string) ([]byte, error) {
 // ReadMulti is a batch version of Read.
 // The returned map have exact length as provided keys. For cache miss, an empty byte will be returned.
 func (c *Memcache) ReadMulti(keys []string) (map[string][]byte, error) {
-	m, err := c.client.GetMulti(keys)
+	var m map[string]*memcache.Item
+	var err error
+
+	fn := func() error {
+		m, err = c.client.GetMulti(keys)
+		return err
+	}
+
+	err = c.withRetryOnTimeout(fn)
+
 	if err != nil {
 		return map[string][]byte{}, err
 	}
@@ -85,12 +126,20 @@ func (c *Memcache) Name() string {
 
 // MaxIdleConns returns client's cache MaxIdleConns option value.
 func (c *Memcache) MaxIdleConns() int {
-	return c.client.MaxIdleConns
+	return c.option.MaxIdleConns
 }
 
 // Delete deletes the item for given key.
 func (c *Memcache) Delete(key string) error {
-	return c.client.Delete(key)
+	var err error
+
+	fn := func() error {
+		return c.client.Delete(key)
+	}
+
+	err = c.withRetryOnTimeout(fn)
+
+	return err
 }
 
 func (c *Memcache) readValue(data []byte) (n []byte, err error) {
@@ -126,6 +175,27 @@ func (c *Memcache) compress(data []byte) []byte {
 	return data
 }
 
+func (c *Memcache) withRetryOnTimeout(fn func() error) error {
+	var err error
+
+	for i := 0; i < c.option.MaxAttempt; i++ {
+		err = fn()
+		if !timeoutError(err) {
+			return err
+		}
+	}
+
+	return err
+}
+
+func optionDefaultValue(option Option) Option {
+	option.Timeout = netTimeout(option.Timeout)
+	option.MaxIdleConns = maxIdleConns(option.MaxIdleConns)
+	option.MaxAttempt = maxAttempt(option.MaxAttempt)
+
+	return option
+}
+
 func netTimeout(timeout time.Duration) time.Duration {
 	if timeout != 0 {
 		return timeout
@@ -140,4 +210,21 @@ func maxIdleConns(maxIdleConns int) int {
 	}
 
 	return defaultMaxIdleConns
+}
+
+func maxAttempt(maxAttempt int) int {
+	if maxAttempt > 0 {
+		return maxAttempt
+	}
+
+	return defaultMaxAttempt
+}
+
+func timeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, ok := err.(*memcache.ConnectTimeoutError)
+	return ok
 }
