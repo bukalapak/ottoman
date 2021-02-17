@@ -81,8 +81,6 @@ func TestRedis(t *testing.T) {
 		t.Run("Delete", func(t *testing.T) { testDelete(t, client, c) })
 		t.Run("Delete-Unknown", func(t *testing.T) { testDeleteUnknown(t, c) })
 	})
-
-	os.Clearenv()
 }
 
 func testWrite(t *testing.T, client Connector, c *redis.Redis) {

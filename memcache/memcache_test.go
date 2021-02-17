@@ -269,8 +269,6 @@ func TestMemcache(t *testing.T) {
 		mc.AssertNumberOfCalls(t, "Delete", 3)
 		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
 	})
-
-	os.Clearenv()
 }
 
 func loadCompressedFixtures(client *gomemcache.Client) {
