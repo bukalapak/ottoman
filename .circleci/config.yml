@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: ~/ottoman
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.16rc1-buster
       - image: memcached:1.4-alpine
       - image: bitnami/redis:5.0
         environment:
