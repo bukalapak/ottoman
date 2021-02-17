@@ -7,5 +7,3 @@ curl "https://golang.org/src/net/http/httptest/recorder_test.go?m=text" | sed "s
 curl "https://raw.githubusercontent.com/urfave/negroni/master/response_writer.go" | sed "s/negroni/http/g" > $DIR/response_writer.go
 curl "https://raw.githubusercontent.com/urfave/negroni/master/response_writer_test.go" | sed "s/negroni/http/g" > $DIR/response_writer_test.go
 
-# adjust import path
-sed -i '' 's|internal/x/net/http/httpguts|golang.org/x/net/http/httpguts|' $DIR/recorder.go
