@@ -3,7 +3,6 @@ package clone
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -36,7 +35,7 @@ func DumpBody(b io.ReadCloser) ([]byte, io.ReadCloser, error) {
 }
 
 func nopCloser(b []byte) io.ReadCloser {
-	return ioutil.NopCloser(bytes.NewReader(b))
+	return io.NopCloser(bytes.NewReader(b))
 }
 
 func copyRequest(req *http.Request) *http.Request {

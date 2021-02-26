@@ -4,7 +4,7 @@ package memcache
 import (
 	"bytes"
 	"compress/zlib"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -154,7 +154,7 @@ func (c *Memcache) readValue(data []byte) (n []byte, err error) {
 		return data, nil
 	}
 
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 func (c *Memcache) compress(data []byte) []byte {

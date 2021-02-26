@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -104,7 +104,7 @@ func (p *remoteProvider) fetchRequest(r *http.Request) ([]byte, *FetchInfo, erro
 		}, errors.New("invalid http status: " + resp.Status)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 
 	return b, &FetchInfo{
 		RemoteURL:  r.URL.String(),

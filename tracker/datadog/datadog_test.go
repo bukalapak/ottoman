@@ -2,7 +2,7 @@ package datadog_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -24,7 +24,7 @@ func newDummyHTTP(statusCode int, err error) *DummyHTTP {
 	return &DummyHTTP{
 		&http.Response{
 			StatusCode: statusCode,
-			Body:       ioutil.NopCloser(bytes.NewReader([]byte(`{"status": "ok"}`))),
+			Body:       io.NopCloser(bytes.NewReader([]byte(`{"status": "ok"}`))),
 		},
 		err,
 	}

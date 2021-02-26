@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -65,7 +64,7 @@ func TestURL(t *testing.T) {
 
 func TestDumpBody(t *testing.T) {
 	qs := `{"foo":"bar"}`
-	c1 := ioutil.NopCloser(strings.NewReader(qs))
+	c1 := io.NopCloser(strings.NewReader(qs))
 	b2, c2, err := httpclone.DumpBody(c1)
 	assert.Nil(t, err)
 	assert.Equal(t, qs, string(b2))
@@ -165,5 +164,5 @@ func clientDo(t *testing.T, r *http.Request, fx func(t *testing.T, q *http.Respo
 }
 
 func nopCloser(b []byte) io.ReadCloser {
-	return ioutil.NopCloser(bytes.NewReader(b))
+	return io.NopCloser(bytes.NewReader(b))
 }
