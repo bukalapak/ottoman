@@ -1,33 +1,45 @@
 package json_test
 
 import (
-	"testing"
-
 	bjson "encoding/json"
+	"testing"
 
 	"github.com/bukalapak/ottoman/encoding/json"
 	"github.com/stretchr/testify/assert"
 )
 
-type testCase struct {
-	test               string
-	shouldErrUnmarshal bool
-	strVal             string
-	shouldErrInt       bool
-	intVal             int64
-	floatVal           float64
-	shouldErrFloat     bool
+type TestPayload struct {
+	N json.Number
+	I int
 }
 
-func runTest(t *testing.T, tc testCase, shouldUseOttomanCoder bool) {
+type testCaseDecoder struct {
+	payload                []byte
+	shouldErrUnmarshal     bool
+	shouldErrMarshal       bool
+	isNumberEmptyOrNullStr bool
+	strNVal                string
+	shouldErrInt           bool
+	intNVal                int64
+	floatNVal              float64
+	shouldErrFloat         bool
+}
+
+type testCaseEncoder struct {
+	payload          TestPayload
+	shouldErrMarshal bool
+	strVal           string
+}
+
+func runUnmarshalTest(t *testing.T, tc testCaseDecoder, shouldUseOttomanCoder bool) {
 
 	var err error
-	var n json.Number
+	var p TestPayload
 
 	if shouldUseOttomanCoder {
-		err = json.Unmarshal([]byte(tc.test), &n)
+		err = json.Unmarshal(tc.payload, &p)
 	} else {
-		err = n.UnmarshalJSON([]byte(tc.test))
+		err = bjson.Unmarshal(tc.payload, &p)
 	}
 
 	if tc.shouldErrUnmarshal {
@@ -35,81 +47,123 @@ func runTest(t *testing.T, tc testCase, shouldUseOttomanCoder bool) {
 		return
 	}
 
-	var errM error
-	var byteArr []byte
-	if shouldUseOttomanCoder {
-		byteArr, errM = json.Marshal(n)
+	assert.Nil(t, err)
+
+	if tc.isNumberEmptyOrNullStr { // special condition, will be converted to empty string
+		assert.Equal(t, "", p.N.String())
 	} else {
-		byteArr, errM = bjson.Marshal(n)
+		assert.Equal(t, string(tc.strNVal), p.N.String())
 	}
 
-	assert.Nil(t, errM)
-
-	if tc.test == "" || tc.test == "null" { // special condition, will be converted to empty string
-		assert.Equal(t, "", string(byteArr))
-	} else {
-		assert.Equal(t, tc.test, string(byteArr))
-	}
-
-	assert.Equal(t, tc.strVal, n.Number.String())
-
-	actualInt, err := n.Number.Int64()
+	actualInt, err := p.N.Int64()
 	if tc.shouldErrInt {
 		assert.Error(t, err)
 	} else {
 		assert.Nil(t, err)
-		assert.Equal(t, tc.intVal, actualInt)
+		assert.Equal(t, tc.intNVal, actualInt)
 	}
 
-	actualFloat, err := n.Number.Float64()
+	actualFloat, err := p.N.Float64()
 	if tc.shouldErrFloat {
 		assert.Error(t, err)
 	} else {
 		assert.Nil(t, err)
-		assert.Equal(t, tc.floatVal, actualFloat)
+		assert.Equal(t, tc.floatNVal, actualFloat)
 	}
 
 }
 
-func runTestCases(t *testing.T, tcs []testCase, shouldUseOttomanCoder bool) {
+func runMarshalTest(t *testing.T, tc testCaseEncoder, shouldUseOttomanCoder bool) {
+	var err error
+	var byteArr []byte
+
+	if shouldUseOttomanCoder {
+		byteArr, err = json.Marshal(tc.payload)
+	} else {
+		byteArr, err = bjson.Marshal(tc.payload)
+	}
+
+	if tc.shouldErrMarshal {
+		assert.Error(t, err)
+		return
+	}
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, tc.strVal, string(byteArr))
+}
+
+func runUnmarshalTestCases(t *testing.T, tcs []testCaseDecoder, shouldUseOttomanCoder bool) {
 	for _, test := range tcs {
-		runTest(t, test, shouldUseOttomanCoder)
+		runUnmarshalTest(t, test, shouldUseOttomanCoder)
 	}
 }
 
-func TestNumber_invalid(t *testing.T) {
+func runMarshalTestCases(t *testing.T, tcs []testCaseEncoder, shouldUseOttomanCoder bool) {
+	for _, test := range tcs {
+		runMarshalTest(t, test, shouldUseOttomanCoder)
+	}
+}
 
-	var testCases = []testCase{
-		{test: "lorem", shouldErrUnmarshal: true},
-		{test: "1L", shouldErrUnmarshal: true},
-		{test: "12.1012.01", shouldErrUnmarshal: true},
+func TestNumber_default_decoder(t *testing.T) {
+	var testCases = []testCaseDecoder{
+		// invalid test
+		{payload: []byte(`{"N":"lorem","I":1}`), shouldErrUnmarshal: true},
+		{payload: []byte(`{"N":"1L","I":2}`), shouldErrUnmarshal: true},
+		{payload: []byte(`{"N":"12.1012.01","I":3}`), shouldErrUnmarshal: true},
+		// // empty string
+		{payload: []byte(`{"N":"","I":1}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
+		{payload: []byte(`{"N":null,"I":2}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
+		// valid number
+		{payload: []byte(`{"N":"3","I":1}`), shouldErrUnmarshal: false, strNVal: "3", shouldErrInt: false, intNVal: 3, shouldErrFloat: false, floatNVal: 3},
+		{payload: []byte(`{"N":"1","I":2}`), shouldErrUnmarshal: false, strNVal: "1", shouldErrInt: false, intNVal: 1, shouldErrFloat: false, floatNVal: 1},
+		{payload: []byte(`{"N":"3.6","I":1}`), shouldErrUnmarshal: false, strNVal: "3.6", shouldErrInt: true, shouldErrFloat: false, floatNVal: 3.6},
 	}
 
-	runTestCases(t, testCases, false)
-	runTestCases(t, testCases, true) // with ottoman decoder
+	runUnmarshalTestCases(t, testCases, false)
 
 }
 
-func TestNumber_empty_string(t *testing.T) {
+func TestNumber_default_encoder(t *testing.T) {
+	var emptyNumber json.Number
 
-	var testCases = []testCase{
-		{test: "", shouldErrUnmarshal: false, shouldErrInt: true, shouldErrFloat: true},
-		{test: "null", shouldErrUnmarshal: false, shouldErrInt: true, shouldErrFloat: true},
+	var testCases = []testCaseEncoder{
+		{payload: TestPayload{N: "", I: 1}, shouldErrMarshal: false, strVal: `{"N":"","I":1}`},
+		{payload: TestPayload{N: emptyNumber, I: 2}, shouldErrMarshal: false, strVal: `{"N":"","I":2}`},
+		{payload: TestPayload{N: "3", I: 2}, shouldErrMarshal: false, strVal: `{"N":"3","I":2}`},
+		{payload: TestPayload{N: "3.12", I: 3}, shouldErrMarshal: false, strVal: `{"N":"3.12","I":3}`},
 	}
 
-	runTestCases(t, testCases, false)
-	runTestCases(t, testCases, true) // with ottoman decoder
+	runMarshalTestCases(t, testCases, false)
 
 }
 
-func TestNumber_number_string(t *testing.T) {
-
-	var testCases = []testCase{
-		{test: "3", shouldErrUnmarshal: false, strVal: "3", shouldErrInt: false, intVal: 3, shouldErrFloat: false, floatVal: 3},
-		{test: "1", shouldErrUnmarshal: false, strVal: "1", shouldErrInt: false, intVal: 1, shouldErrFloat: false, floatVal: 1},
-		{test: "3.6", shouldErrUnmarshal: false, strVal: "3.6", shouldErrInt: true, shouldErrFloat: false, floatVal: 3.6},
+func TestNumber_ottoman_decoder(t *testing.T) {
+	testCases := []testCaseDecoder{
+		// // invalid test
+		{payload: []byte(`{"N":"lorem","I":1}`), shouldErrUnmarshal: true},
+		{payload: []byte(`{"N":"1L","I":2}`), shouldErrUnmarshal: true},
+		{payload: []byte(`{"N":"12.1012.01","I":3}`), shouldErrUnmarshal: true},
+		// // empty string
+		{payload: []byte(`{"N":"","I":1}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
+		{payload: []byte(`{"N":null,"I":2}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
+		// valid number
+		{payload: []byte(`{"N":"3","I":1}`), shouldErrUnmarshal: false, strNVal: "3", shouldErrInt: false, intNVal: 3, shouldErrFloat: false, floatNVal: 3},
+		{payload: []byte(`{"N":"1","I":2}`), shouldErrUnmarshal: false, strNVal: "1", shouldErrInt: false, intNVal: 1, shouldErrFloat: false, floatNVal: 1},
+		{payload: []byte(`{"N":"3.6","I":1}`), shouldErrUnmarshal: false, strNVal: "3.6", shouldErrInt: true, shouldErrFloat: false, floatNVal: 3.6},
 	}
 
-	runTestCases(t, testCases, false)
-	runTestCases(t, testCases, true) // with ottoman decoder
+	runUnmarshalTestCases(t, testCases, true) // with ottoman decoder
+}
+
+func TestNumber_ottoman_encoder(t *testing.T) {
+	var emptyNumber json.Number
+	testCases := []testCaseEncoder{
+		{payload: TestPayload{N: "", I: 1}, shouldErrMarshal: false, strVal: "{\"N\":\"\",\"I\":1}\n"},
+		{payload: TestPayload{N: emptyNumber, I: 2}, shouldErrMarshal: false, strVal: "{\"N\":\"\",\"I\":2}\n"},
+		{payload: TestPayload{N: "3", I: 2}, shouldErrMarshal: false, strVal: "{\"N\":\"3\",\"I\":2}\n"},
+		{payload: TestPayload{N: "3.12", I: 3}, shouldErrMarshal: false, strVal: "{\"N\":\"3.12\",\"I\":3}\n"},
+	}
+
+	runMarshalTestCases(t, testCases, true) // with ottoman decoder
 }
