@@ -23,7 +23,7 @@ func (v *Number) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (v *Number) MarshalJSON() ([]byte, error) {
-	n := bjson.Number(*v)
+func (v Number) MarshalJSON() ([]byte, error) {
+	n := bjson.Number(v)
 	return json.Marshal(n)
 }

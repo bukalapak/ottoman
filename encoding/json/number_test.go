@@ -63,7 +63,7 @@ func TestCustomJSONNumber(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, x, v)
 
-	ss, err := json.Marshal(&v)
+	ss, err := json.Marshal(v)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedString, strings.TrimSpace(string(ss)))
 }
