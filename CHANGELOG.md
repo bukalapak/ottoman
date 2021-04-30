@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0] - 2021-04-30
+
+### Added
+
+- Add new type `Number` as alias from `json.Number`
+- Add custom marshaler and unmarshaler for type `Number`
+
 ## [1.14.0] - 2021-02-26
 
 ### Updated
