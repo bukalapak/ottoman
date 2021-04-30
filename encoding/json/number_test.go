@@ -2,168 +2,87 @@ package json_test
 
 import (
 	bjson "encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/bukalapak/ottoman/encoding/json"
 	"github.com/stretchr/testify/assert"
 )
 
-type TestPayload struct {
-	N json.Number
-	I int
+var sample = `{"numberK":123,"numberStringK":"123","emptyStringK":"","nullK":null}`
+var expectedString = `{"numberK":123,"numberStringK":123,"emptyStringK":0,"nullK":0}`
+
+type NumberKind struct {
+	Number       bjson.Number `json:"numberK"`
+	NumberString bjson.Number `json:"numberStringK"`
+	EmptyString  bjson.Number `json:"emptyStringK"`
+	Null         bjson.Number `json:"nullK"`
 }
 
-type testCaseDecoder struct {
-	payload                []byte
-	shouldErrUnmarshal     bool
-	shouldErrMarshal       bool
-	isNumberEmptyOrNullStr bool
-	strNVal                string
-	shouldErrInt           bool
-	intNVal                int64
-	floatNVal              float64
-	shouldErrFloat         bool
-}
-
-type testCaseEncoder struct {
-	payload          TestPayload
-	shouldErrMarshal bool
-	strVal           string
-}
-
-func runUnmarshalTest(t *testing.T, tc testCaseDecoder, shouldUseOttomanCoder bool) {
-
-	var err error
-	var p TestPayload
-
-	if shouldUseOttomanCoder {
-		err = json.Unmarshal(tc.payload, &p)
-	} else {
-		err = bjson.Unmarshal(tc.payload, &p)
+func TestOriginalJSONNumber(t *testing.T) {
+	x := NumberKind{
+		Null:         bjson.Number(""),
+		Number:       bjson.Number("123"),
+		NumberString: bjson.Number("123"),
+		EmptyString:  bjson.Number(""),
 	}
 
-	if tc.shouldErrUnmarshal {
-		assert.Error(t, err)
-		return
-	}
+	var v NumberKind
 
+	dec := bjson.NewDecoder(strings.NewReader(sample))
+	dec.UseNumber()
+
+	err := dec.Decode(&v)
+	assert.Contains(t, err.Error(), "json: invalid number literal")
+	assert.Equal(t, x, v)
+
+	ss, err := json.Marshal(v)
 	assert.Nil(t, err)
-
-	if tc.isNumberEmptyOrNullStr { // special condition, will be converted to empty string
-		assert.Equal(t, "", p.N.String())
-	} else {
-		assert.Equal(t, string(tc.strNVal), p.N.String())
-	}
-
-	actualInt, err := p.N.Int64()
-	if tc.shouldErrInt {
-		assert.Error(t, err)
-	} else {
-		assert.Nil(t, err)
-		assert.Equal(t, tc.intNVal, actualInt)
-	}
-
-	actualFloat, err := p.N.Float64()
-	if tc.shouldErrFloat {
-		assert.Error(t, err)
-	} else {
-		assert.Nil(t, err)
-		assert.Equal(t, tc.floatNVal, actualFloat)
-	}
-
+	assert.Equal(t, expectedString, strings.TrimSpace(string(ss)))
 }
 
-func runMarshalTest(t *testing.T, tc testCaseEncoder, shouldUseOttomanCoder bool) {
-	var err error
-	var byteArr []byte
+type CNumberKind struct {
+	Number       json.Number `json:"numberK"`
+	NumberString json.Number `json:"numberStringK"`
+	EmptyString  json.Number `json:"emptyStringK"`
+	Null         json.Number `json:"nullK"`
+}
 
-	if shouldUseOttomanCoder {
-		byteArr, err = json.Marshal(tc.payload)
-	} else {
-		byteArr, err = bjson.Marshal(tc.payload)
+func TestCustomJSONNumber(t *testing.T) {
+	x := CNumberKind{
+		Null:         json.Number(""),
+		Number:       json.Number("123"),
+		NumberString: json.Number("123"),
+		EmptyString:  json.Number(""),
 	}
 
-	if tc.shouldErrMarshal {
-		assert.Error(t, err)
-		return
-	}
+	var v CNumberKind
 
+	dec := json.NewDecoder(strings.NewReader(sample))
+	err := dec.Decode(&v)
 	assert.Nil(t, err)
+	assert.Equal(t, x, v)
 
-	assert.Equal(t, tc.strVal, string(byteArr))
+	ss, err := json.Marshal(&v)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedString, strings.TrimSpace(string(ss)))
 }
 
-func runUnmarshalTestCases(t *testing.T, tcs []testCaseDecoder, shouldUseOttomanCoder bool) {
-	for _, test := range tcs {
-		runUnmarshalTest(t, test, shouldUseOttomanCoder)
-	}
+type StringKind struct {
+	Original bjson.Number `json:"original"`
+	Custom   json.Number  `json:"custom"`
 }
 
-func runMarshalTestCases(t *testing.T, tcs []testCaseEncoder, shouldUseOttomanCoder bool) {
-	for _, test := range tcs {
-		runMarshalTest(t, test, shouldUseOttomanCoder)
-	}
-}
+func TestStringKind(t *testing.T) {
+	var v StringKind
 
-func TestNumber_default_decoder(t *testing.T) {
-	var testCases = []testCaseDecoder{
-		// invalid test
-		{payload: []byte(`{"N":"lorem","I":1}`), shouldErrUnmarshal: true},
-		{payload: []byte(`{"N":"1L","I":2}`), shouldErrUnmarshal: true},
-		{payload: []byte(`{"N":"12.1012.01","I":3}`), shouldErrUnmarshal: true},
-		// // empty string
-		{payload: []byte(`{"N":"","I":1}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
-		{payload: []byte(`{"N":null,"I":2}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
-		// valid number
-		{payload: []byte(`{"N":"3","I":1}`), shouldErrUnmarshal: false, strNVal: "3", shouldErrInt: false, intNVal: 3, shouldErrFloat: false, floatNVal: 3},
-		{payload: []byte(`{"N":"1","I":2}`), shouldErrUnmarshal: false, strNVal: "1", shouldErrInt: false, intNVal: 1, shouldErrFloat: false, floatNVal: 1},
-		{payload: []byte(`{"N":"3.6","I":1}`), shouldErrUnmarshal: false, strNVal: "3.6", shouldErrInt: true, shouldErrFloat: false, floatNVal: 3.6},
-	}
+	sO := `{"Original":"abc","custom":"123"}`
+	decO := bjson.NewDecoder(strings.NewReader(sO))
+	err := decO.Decode(&v)
+	assert.Contains(t, err.Error(), "json: invalid number literal")
 
-	runUnmarshalTestCases(t, testCases, false)
-
-}
-
-func TestNumber_default_encoder(t *testing.T) {
-	var emptyNumber json.Number
-
-	var testCases = []testCaseEncoder{
-		{payload: TestPayload{N: "", I: 1}, shouldErrMarshal: false, strVal: `{"N":"","I":1}`},
-		{payload: TestPayload{N: emptyNumber, I: 2}, shouldErrMarshal: false, strVal: `{"N":"","I":2}`},
-		{payload: TestPayload{N: "3", I: 2}, shouldErrMarshal: false, strVal: `{"N":"3","I":2}`},
-		{payload: TestPayload{N: "3.12", I: 3}, shouldErrMarshal: false, strVal: `{"N":"3.12","I":3}`},
-	}
-
-	runMarshalTestCases(t, testCases, false)
-
-}
-
-func TestNumber_ottoman_decoder(t *testing.T) {
-	testCases := []testCaseDecoder{
-		// // invalid test
-		{payload: []byte(`{"N":"lorem","I":1}`), shouldErrUnmarshal: true},
-		{payload: []byte(`{"N":"1L","I":2}`), shouldErrUnmarshal: true},
-		{payload: []byte(`{"N":"12.1012.01","I":3}`), shouldErrUnmarshal: true},
-		// // empty string
-		{payload: []byte(`{"N":"","I":1}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
-		{payload: []byte(`{"N":null,"I":2}`), shouldErrUnmarshal: false, isNumberEmptyOrNullStr: true, strNVal: "", shouldErrInt: true, shouldErrFloat: true},
-		// valid number
-		{payload: []byte(`{"N":"3","I":1}`), shouldErrUnmarshal: false, strNVal: "3", shouldErrInt: false, intNVal: 3, shouldErrFloat: false, floatNVal: 3},
-		{payload: []byte(`{"N":"1","I":2}`), shouldErrUnmarshal: false, strNVal: "1", shouldErrInt: false, intNVal: 1, shouldErrFloat: false, floatNVal: 1},
-		{payload: []byte(`{"N":"3.6","I":1}`), shouldErrUnmarshal: false, strNVal: "3.6", shouldErrInt: true, shouldErrFloat: false, floatNVal: 3.6},
-	}
-
-	runUnmarshalTestCases(t, testCases, true) // with ottoman decoder
-}
-
-func TestNumber_ottoman_encoder(t *testing.T) {
-	var emptyNumber json.Number
-	testCases := []testCaseEncoder{
-		{payload: TestPayload{N: "", I: 1}, shouldErrMarshal: false, strVal: "{\"N\":\"\",\"I\":1}\n"},
-		{payload: TestPayload{N: emptyNumber, I: 2}, shouldErrMarshal: false, strVal: "{\"N\":\"\",\"I\":2}\n"},
-		{payload: TestPayload{N: "3", I: 2}, shouldErrMarshal: false, strVal: "{\"N\":\"3\",\"I\":2}\n"},
-		{payload: TestPayload{N: "3.12", I: 3}, shouldErrMarshal: false, strVal: "{\"N\":\"3.12\",\"I\":3}\n"},
-	}
-
-	runMarshalTestCases(t, testCases, true) // with ottoman decoder
+	sC := `{"Original":"123","custom":"abc"}`
+	decC := json.NewDecoder(strings.NewReader(sC))
+	err = decC.Decode(&v)
+	assert.Contains(t, err.Error(), "json: invalid number literal")
 }

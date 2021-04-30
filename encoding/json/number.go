@@ -1,10 +1,9 @@
 package json
 
 import (
+	"encoding/json"
 	bjson "encoding/json"
-	"fmt"
 	"strconv"
-	"strings"
 )
 
 type Number bjson.Number
@@ -23,14 +22,10 @@ func (v Number) Int64() (int64, error) {
 }
 
 func (v *Number) UnmarshalJSON(b []byte) error {
-	strB := strings.Trim(string(b), "\"")
-	if strB == "" || strB == "null" {
+	strB := string(b)
+	if strB == `""` || strB == "null" {
 		*v = Number("")
 		return nil
-	}
-
-	if !isValidNumber(strB) {
-		return fmt.Errorf("Invalid number %s for type Number", strB)
 	}
 
 	var s bjson.Number
@@ -43,59 +38,19 @@ func (v *Number) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// isValidNumber reports whether s is a valid JSON number literal. Taken from encoding/json package
-func isValidNumber(s string) bool {
-
-	if s == "" {
-		return false
+func (v *Number) MarshalJSON() ([]byte, error) {
+	if v.String() == "" {
+		return json.Marshal(0)
 	}
 
-	// Optional -
-	if s[0] == '-' {
-		s = s[1:]
-		if s == "" {
-			return false
+	i, err := v.Int64()
+	if err != nil {
+		f, err := v.Float64()
+		if err != nil {
+			return nil, err
 		}
+		return json.Marshal(f)
 	}
 
-	// Digits
-	switch {
-	default:
-		return false
-
-	case s[0] == '0':
-		s = s[1:]
-
-	case '1' <= s[0] && s[0] <= '9':
-		s = s[1:]
-		for len(s) > 0 && '0' <= s[0] && s[0] <= '9' {
-			s = s[1:]
-		}
-	}
-
-	// . followed by 1 or more digits.
-	if len(s) >= 2 && s[0] == '.' && '0' <= s[1] && s[1] <= '9' {
-		s = s[2:]
-		for len(s) > 0 && '0' <= s[0] && s[0] <= '9' {
-			s = s[1:]
-		}
-	}
-
-	// e or E followed by an optional - or + and
-	// 1 or more digits.
-	if len(s) >= 2 && (s[0] == 'e' || s[0] == 'E') {
-		s = s[1:]
-		if s[0] == '+' || s[0] == '-' {
-			s = s[1:]
-			if s == "" {
-				return false
-			}
-		}
-		for len(s) > 0 && '0' <= s[0] && s[0] <= '9' {
-			s = s[1:]
-		}
-	}
-
-	// Make sure we are at the end.
-	return s == ""
+	return json.Marshal(i)
 }
