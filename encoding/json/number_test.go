@@ -68,6 +68,38 @@ func TestCustomJSONNumber(t *testing.T) {
 	assert.Equal(t, expectedString, strings.TrimSpace(string(ss)))
 }
 
+type cNumberMethodExpectation struct {
+	num               string
+	shouldParseIntErr bool
+	expectedInt64     int64
+	expectedFloat     float64
+	expectedString    string
+}
+
+func TestCustomJSONNumberMethod(t *testing.T) {
+	expectation := []cNumberMethodExpectation{
+		{num: "", expectedInt64: 0, expectedFloat: 0, expectedString: ""},
+		{num: "1", expectedInt64: 1, expectedFloat: 1, expectedString: "1"},
+		{num: "25", expectedInt64: 25, expectedFloat: 25, expectedString: "25"},
+		{num: "22.3", shouldParseIntErr: true, expectedInt64: 0, expectedFloat: 22.3, expectedString: "22.3"},
+	}
+
+	for _, v := range expectation {
+		x := json.Number(v.num)
+
+		assert.Equal(t, v.expectedString, x.String())
+
+		i, err := x.Int64()
+		if v.shouldParseIntErr {
+			assert.Error(t, err)
+		}
+		assert.Equal(t, v.expectedInt64, i)
+
+		f, err := x.Float64()
+		assert.Equal(t, v.expectedFloat, f)
+	}
+}
+
 type StringKind struct {
 	Original bjson.Number `json:"original"`
 	Custom   json.Number  `json:"custom"`

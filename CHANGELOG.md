@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.16.0] - 2021-05-03
+
+### Added
+
+- Add new methods `String`, `Int64`, and `Float64` for type `Number`
+
 ## [1.15.0] - 2021-04-30
 
 ### Added
