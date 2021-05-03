@@ -96,6 +96,7 @@ func TestCustomJSONNumberMethod(t *testing.T) {
 		assert.Equal(t, v.expectedInt64, i)
 
 		f, err := x.Float64()
+		assert.Nil(t, err)
 		assert.Equal(t, v.expectedFloat, f)
 	}
 }
