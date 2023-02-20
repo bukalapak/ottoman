@@ -227,12 +227,8 @@ func timeoutError(err error) bool {
 		return false
 	}
 
-	err = errors.Unwrap(err)
-	if err == nil {
-		return false
-	}
-
-	nerr, ok := err.(net.Error)
+	var nerr net.Error
+	ok := errors.As(err, &nerr)
 	if !ok {
 		return false
 	}
