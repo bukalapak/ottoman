@@ -4,7 +4,9 @@ package memcache
 import (
 	"bytes"
 	"compress/zlib"
+	"errors"
 	"io"
+	"net"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -225,6 +227,11 @@ func timeoutError(err error) bool {
 		return false
 	}
 
-	_, ok := err.(*memcache.ConnectTimeoutError)
-	return ok
+	var nerr net.Error
+	ok := errors.As(err, &nerr)
+	if !ok {
+		return false
+	}
+
+	return nerr.Timeout()
 }

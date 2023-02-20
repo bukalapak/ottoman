@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.16.1] - 2023-02-20
+
+### Fixed
+
+- memcache package retry not working for timeout error
+
 ## [1.16.0] - 2021-05-03
 
 ### Added

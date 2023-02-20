@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -14,6 +15,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+type timeoutError struct{}
+
+func (e *timeoutError) Error() string   { return "i/o timeout" }
+func (e *timeoutError) Timeout() bool   { return true }
+func (e *timeoutError) Temporary() bool { return true }
+
+type netAddr struct {
+	network string
+	str     string
+}
+
+func (a *netAddr) Network() string {
+	return a.network
+}
+
+func (a *netAddr) String() string {
+	return a.str
+}
 
 type MockMemcacheClient struct {
 	mock.Mock
@@ -30,7 +50,7 @@ func (mc *MockMemcacheClient) Get(key string) (*gomemcache.Item, error) {
 	args := mc.Called(key)
 
 	item, _ := args.Get(0).(*gomemcache.Item)
-	err,  _ := args.Get(1).(error)
+	err, _ := args.Get(1).(error)
 
 	return item, err
 }
@@ -53,7 +73,6 @@ func (mc *MockMemcacheClient) Delete(key string) error {
 func TestMemcache(t *testing.T) {
 	addr := memcachedAddr()
 	client := gomemcache.New(addr)
-
 
 	t.Run("Name", func(t *testing.T) {
 		c := memcache.New([]string{addr}, memcache.Option{})
@@ -239,35 +258,43 @@ func TestMemcache(t *testing.T) {
 		mc := &MockMemcacheClient{}
 
 		c := memcache.NewWithClient(mc, memcache.Option{
-			Timeout: 100 * time.Millisecond,
-			Compress: false,
+			Timeout:    100 * time.Millisecond,
+			Compress:   false,
 			MaxAttempt: 3,
 		})
 
+		errTimeout := &net.OpError{
+			Op:     "read",
+			Net:    "tcp",
+			Source: &netAddr{network: "tcp", str: "10.90.142.64:43080"},
+			Addr:   &netAddr{network: "tcp", str: "10.49.42.100:11212"},
+			Err:    &timeoutError{},
+		}
+
 		mc.On("Set", &gomemcache.Item{
-			Key: "foo",
-			Value: []byte("bar"),
+			Key:        "foo",
+			Value:      []byte("bar"),
 			Expiration: 10,
-		}).Return(&gomemcache.ConnectTimeoutError{})
-		mc.On("Get", "foo").Return(nil, &gomemcache.ConnectTimeoutError{})
-		mc.On("GetMulti", []string{"foo", "bar"}).Return(nil, &gomemcache.ConnectTimeoutError{})
-		mc.On("Delete", "foo").Return(&gomemcache.ConnectTimeoutError{})
+		}).Return(errTimeout)
+		mc.On("Get", "foo").Return(nil, errTimeout)
+		mc.On("GetMulti", []string{"foo", "bar"}).Return(nil, errTimeout)
+		mc.On("Delete", "foo").Return(errTimeout)
 
 		err := c.Write("foo", []byte("bar"), 10*time.Second)
 		mc.AssertNumberOfCalls(t, "Set", 3)
-		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+		assert.Equal(t, errTimeout, err)
 
 		_, err = c.Read("foo")
 		mc.AssertNumberOfCalls(t, "Get", 3)
-		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+		assert.Equal(t, errTimeout, err)
 
 		_, err = c.ReadMulti([]string{"foo", "bar"})
 		mc.AssertNumberOfCalls(t, "GetMulti", 3)
-		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+		assert.Equal(t, errTimeout, err)
 
 		err = c.Delete("foo")
 		mc.AssertNumberOfCalls(t, "Delete", 3)
-		assert.Equal(t, &gomemcache.ConnectTimeoutError{}, err)
+		assert.Equal(t, errTimeout, err)
 	})
 }
 
