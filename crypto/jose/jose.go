@@ -6,7 +6,24 @@ import (
 	"errors"
 	"strings"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
+)
+
+var (
+	keyAlgorithm = []jose.KeyAlgorithm{
+		jose.RSA1_5,
+		jose.RSA_OAEP,
+		jose.RSA_OAEP_256,
+	}
+
+	contentEncryption = []jose.ContentEncryption{
+		jose.A128CBC_HS256,
+		jose.A192CBC_HS384,
+		jose.A256CBC_HS512,
+		jose.A128GCM,
+		jose.A192GCM,
+		jose.A256GCM,
+	}
 )
 
 // Signature is the interface that handles commonly used JWS operations.
@@ -139,7 +156,7 @@ func Decode(pub *rsa.PublicKey, data string) ([]byte, error) {
 		return nil, errors.New("missing rsa public key")
 	}
 
-	token, err := jose.ParseSigned(data)
+	token, err := jose.ParseSigned(data, []jose.SignatureAlgorithm{jose.RS256, jose.RS384, jose.RS512})
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +170,7 @@ func Decrypt(prv *rsa.PrivateKey, data string) ([]byte, error) {
 		return nil, errors.New("missing rsa private key")
 	}
 
-	token, err := jose.ParseEncrypted(data)
+	token, err := jose.ParseEncrypted(data, keyAlgorithm, contentEncryption)
 	if err != nil {
 		return nil, err
 	}
